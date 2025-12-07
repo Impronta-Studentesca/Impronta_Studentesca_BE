@@ -21,6 +21,4 @@ public class OrganoRappresentanza {
     @Column(nullable = false)
     private String nome;
 
-    @Column(columnDefinition = "TEXT")
-    private String descrizione;
 }

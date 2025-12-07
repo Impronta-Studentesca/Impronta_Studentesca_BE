@@ -1,7 +1,11 @@
 package it.impronta_studentesca_be.entity;
 
+import it.impronta_studentesca_be.dto.UfficioRequestDTO;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "ufficio")
@@ -22,4 +26,7 @@ public class Ufficio {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "responsabile_id")
     private Persona responsabile;
+
+
+
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "persona_rappresentanza")
@@ -33,9 +34,48 @@ public class PersonaRappresentanza {
     @Column(name = "data_fine")
     private LocalDate dataFine;
 
-    @Column(length = 100)
-    private String carica; // es. "Rappresentante degli studenti"
 
-    @Column(columnDefinition = "TEXT")
-    private String note;
+
+    public PersonaRappresentanza(Persona persona, OrganoRappresentanza organoRappresentanza) {
+
+        this.persona = persona;
+        this.organoRappresentanza = organoRappresentanza;
+
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        generaDataInizio();
+        generaDataFine();
+    }
+
+    private void generaDataInizio() {
+        if (dataInizio == null) {
+            dataInizio = LocalDate.now();
+        }
+    }
+
+    private void generaDataFine() {
+        // Se è già stata impostata a mano, non tocco nulla
+        if (dataFine != null) {
+            return;
+        }
+
+        // Se manca la dataInizio, la genero prima
+        if (dataInizio == null) {
+            generaDataInizio();
+        }
+
+        // Durata in anni: 4 per CdA ERSU, altrimenti 2
+        int durataAnni = 2;
+        if (organoRappresentanza != null && organoRappresentanza.getCodice() != null) {
+            if ("CdA ERSU".equalsIgnoreCase(organoRappresentanza.getCodice())) {
+                durataAnni = 4;
+            }
+        }
+
+        this.dataFine = dataInizio.plusYears(durataAnni);
+    }
+
+
 }

@@ -15,9 +15,13 @@ public interface DirettivoService {
 
     Direttivo getById(Long id);
 
+    void checkExistById(Long id);
+
     List<Direttivo> getAll();
 
     List<Direttivo> getByTipo(TipoDirettivo tipo);
 
     List<Direttivo> getByDipartimento(Long dipartimentoId);
+
+    List<Direttivo> getDirettiviInCarica();
 }

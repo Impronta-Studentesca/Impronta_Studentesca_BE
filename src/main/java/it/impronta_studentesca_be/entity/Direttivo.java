@@ -4,6 +4,7 @@ import it.impronta_studentesca_be.constant.TipoDirettivo;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -18,8 +19,6 @@ public class Direttivo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String nome;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -29,6 +28,20 @@ public class Direttivo {
     @JoinColumn(name = "dipartimento_id")
     private Dipartimento dipartimento; // nullable per il GENERALE
 
+    /**
+     * Inizio del mandato del direttivo
+     */
+    @Column(name = "inizio_mandato", nullable = false)
+    private LocalDate inizioMandato;
+
+    /**
+     * Fine del mandato:
+     * - NULL = direttivo ancora in carica
+     * - valorizzato = direttivo storico
+     */
+    @Column(name = "fine_mandato")
+    private LocalDate fineMandato;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -37,5 +50,14 @@ public class Direttivo {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
+    }
+
+    /**
+     * Campo derivato: true se il direttivo è attualmente in carica.
+     * Non viene mappato su DB.
+     */
+    @Transient
+    public boolean isAttivo() {
+        return fineMandato == null || fineMandato.isAfter(LocalDate.now());
     }
 }

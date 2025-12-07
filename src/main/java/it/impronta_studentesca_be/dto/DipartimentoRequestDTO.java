@@ -1,0 +1,21 @@
+package it.impronta_studentesca_be.dto;
+
+import it.impronta_studentesca_be.entity.Dipartimento;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class DipartimentoRequestDTO {
+
+    private Long id;
+
+    private String nome;
+
+    private String codice;
+
+}

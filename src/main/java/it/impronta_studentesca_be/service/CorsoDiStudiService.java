@@ -12,6 +12,8 @@ public interface CorsoDiStudiService {
 
     void delete(Long id);
 
+    void checkExistById(Long id);
+
     CorsoDiStudi getById(Long id);
 
     List<CorsoDiStudi> getAll();

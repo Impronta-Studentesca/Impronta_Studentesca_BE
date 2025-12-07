@@ -8,6 +8,8 @@ public interface OrganoRappresentanzaService {
 
     OrganoRappresentanza create(OrganoRappresentanza organo);
 
+    void checkExistById(Long id);
+
     OrganoRappresentanza update(OrganoRappresentanza organo);
 
     void delete(Long id);

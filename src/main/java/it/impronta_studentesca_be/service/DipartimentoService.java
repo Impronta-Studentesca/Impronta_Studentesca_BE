@@ -12,6 +12,8 @@ public interface DipartimentoService {
 
     void delete(Long id);
 
+    void checkExistById(Long id);
+
     Dipartimento getById(Long id);
 
     List<Dipartimento> getAll();

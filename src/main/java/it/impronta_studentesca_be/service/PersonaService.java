@@ -12,7 +12,11 @@ public interface PersonaService {
 
     void delete(Long id);
 
+    void checkExistById(Long id);
+
     Persona getById(Long id);
+
+    Persona getByEmail(String email);
 
     List<Persona> getAll();
 

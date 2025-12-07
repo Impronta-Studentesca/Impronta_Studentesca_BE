@@ -1,10 +1,15 @@
 package it.impronta_studentesca_be.entity;
 
-import it.impronta_studentesca_be.constant.TipoCorso;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 @Entity
 @Table(name = "persona")
@@ -18,19 +23,30 @@ public class Persona {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "persona_ruoli",
+            joinColumns = @JoinColumn(name = "persona_id"),
+            inverseJoinColumns = @JoinColumn(name = "ruolo_id")
+    )
+    @Builder.Default
+    private Set<Ruolo> ruoli = new HashSet<>();
+
     @Column(nullable = false, length = 100)
     private String nome;
 
     @Column(nullable = false, length = 100)
     private String cognome;
 
+    @Column(nullable = false, length = 100)
+    private String email;
+
+    @Column(nullable = true)
+    private String password;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "corso_di_studi_id")
     private CorsoDiStudi corsoDiStudi;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_corso")
-    private TipoCorso tipoCorso;
 
     @Column(name = "anno_corso")
     private Integer annoCorso;
@@ -42,16 +58,43 @@ public class Persona {
     @Column(name = "data_registrazione", nullable = false)
     private LocalDateTime dataRegistrazione;
 
-    @Column(name = "is_staff", nullable = false)
-    private boolean staff;
-
-    @Column(name = "foto_url")
+    @Column(name = "foto_url", length = 1024)
     private String fotoUrl;
+
+    @Column(name = "foto_thumbnail_url", length = 1024)
+    private String fotoThumbnailUrl;
+
+    @Column(name = "foto_file_id", length = 255)
+    private String fotoFileId;
+
+
+    public void setEmail(String email) {
+        // trim + lowercase sicuro
+        this.email = (email == null) ? null : email.trim().toLowerCase();
+    }
 
     @PrePersist
     protected void onCreate() {
+        generaDataRegistrazione();
+        normalizeEmail();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        normalizeEmail();
+    }
+
+    private void generaDataRegistrazione() {
         if (dataRegistrazione == null) {
             dataRegistrazione = LocalDateTime.now();
         }
     }
+
+    private void normalizeEmail() {
+        if (email != null) {
+            email = email.trim().toLowerCase(Locale.ROOT);
+        }
+    }
+
+
 }

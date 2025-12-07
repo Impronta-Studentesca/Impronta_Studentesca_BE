@@ -1,16 +1,16 @@
 package it.impronta_studentesca_be.service;
 
+import it.impronta_studentesca_be.entity.Direttivo;
+import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaDirettivo;
 
 import java.util.List;
 
 public interface PersonaDirettivoService {
 
-    PersonaDirettivo addPersonaToDirettivo(Long personaId, Long direttivoId, String ruolo);
+    PersonaDirettivo addPersonaToDirettivo(Persona persona, Direttivo direttivo, String ruoloNelDirettivo);
 
-    void removePersonaFromDirettivo(Long personaId, Long direttivoId);
-
-    List<PersonaDirettivo> getByPersona(Long personaId);
+    void removePersonaFromDirettivo(Persona persona, Direttivo direttivo);
 
     List<PersonaDirettivo> getByDirettivo(Long direttivoId);
 }
