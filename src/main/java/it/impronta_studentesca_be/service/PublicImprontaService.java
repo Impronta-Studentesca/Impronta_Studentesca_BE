@@ -40,7 +40,7 @@ public interface PublicImprontaService {
 
     // Direttivi / rappresentanza
     List<PersonaDirettivoResponseDTO> getMembriDirettivo(Long direttivoId);
-    PersonaRappresentanzaResponseDTO getRappresentanteById(Long id);
+    PersonaRappresentanzaResponseDTO getPersonaRappresentanzaById(Long id);
 
     // Se vuoi, metodi “aggregati” già pronti per il FE
  // es. tipo=GENERALE

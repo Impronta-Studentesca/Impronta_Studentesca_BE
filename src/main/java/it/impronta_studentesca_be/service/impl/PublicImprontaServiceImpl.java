@@ -199,11 +199,18 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     /// INIZIO ORGANI//////////////////////////////////////////////////////
     /// //////////////////////////////////////////////////////////
 
+
+    /*
+    TESTATO 06/12/2025 FUNZIONA
+     */
     @Override
     public OrganoRappresentanzaDTO getOrganoById(Long organoId) {
         return new OrganoRappresentanzaDTO(organoRappresentanzaService.getById(organoId));
     }
 
+    /*
+    TESTATO 06/12/2025 FUNZIONA
+     */
     @Override
     public List<OrganoRappresentanzaDTO> getOrganoAll() {
         return organoRappresentanzaService.getAll().stream().map(OrganoRappresentanzaDTO::new).collect(Collectors.toList());
@@ -219,7 +226,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
 
     @Override
-    public PersonaRappresentanzaResponseDTO getRappresentanteById(Long id) {
+    public PersonaRappresentanzaResponseDTO getPersonaRappresentanzaById(Long id) {
         return new PersonaRappresentanzaResponseDTO(personaRappresentanzaService.getById(id));
     }
 
@@ -254,7 +261,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
         // Costruisco il DTO aggregato
         return PersonaConRappresentanzeResponseDTO.builder()
                 .persona(personaDTO)
-                .ruoli(ruoli)
+                .cariche(ruoli)
                 .build();
     }
 
@@ -301,7 +308,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
                     return PersonaConRappresentanzeResponseDTO.builder()
                             .persona(personaDTO)
-                            .ruoli(ruoli)
+                            .cariche(ruoli)
                             .build();
                 })
                 .toList();

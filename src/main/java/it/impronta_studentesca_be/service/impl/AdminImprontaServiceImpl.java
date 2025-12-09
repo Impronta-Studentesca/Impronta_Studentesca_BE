@@ -102,13 +102,6 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
 
     }
 
-    @Override
-    public void assegnaPersonaAOrgano(Long personaId, Long organoId, String ruolo) {
-
-        personaRappresentanzaService.addPersonaToOrgano(personaId, organoId, ruolo);
-
-
-    }
 
     @Override
     public void eliminaPersonaRappresentanza(Long personaRappresentanzaId) {

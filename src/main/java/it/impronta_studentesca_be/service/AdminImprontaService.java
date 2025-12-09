@@ -15,7 +15,6 @@ public interface AdminImprontaService {
     void rimuoviPersonaDaDirettivo(Long personaId, Long direttivoId);
 
     // Organi di rappresentanza
-    void assegnaPersonaAOrgano(Long personaId, Long organoId, String ruolo);
     void eliminaPersonaRappresentanza(Long personaRappresentanzaId);
 
     // Dipartimenti / corsi / uffici (CRUD admin)

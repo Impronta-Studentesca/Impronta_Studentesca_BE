@@ -85,6 +85,9 @@ public class OrganoRappresentanzaServiceImpl implements OrganoRappresentanzaServ
         }
     }
 
+    /*
+    TESTATO 06/12/2025 FUNZIONA
+     */
     @Override
     public OrganoRappresentanza getById(Long id) {
         log.info("RECUPERO ORGANO CON ID: {}", id);
@@ -113,6 +116,9 @@ public class OrganoRappresentanzaServiceImpl implements OrganoRappresentanzaServ
                 });
     }
 
+    /*
+    TESTATO 06/12/2025 FUNZIONA
+     */
     @Override
     public List<OrganoRappresentanza> getAll() {
         log.info("RECUPERO DI TUTTI GLI ORGANI");

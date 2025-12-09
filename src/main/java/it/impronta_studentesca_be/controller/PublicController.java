@@ -179,12 +179,32 @@ public class PublicController {
     // RAPPRESENTANTI
 
     @GetMapping("/" + ApiPath.RAPPRESENTANTE_PATH + "/{rappresentanteId}")
-    public ResponseEntity<PersonaRappresentanzaResponseDTO> getRappresentantiById(
+    public ResponseEntity<PersonaRappresentanzaResponseDTO> getPersonaRappresentanzaById(
             @PathVariable Long rappresentanteId
     ) {
-        return ResponseEntity.ok(publicImprontaService.getRappresentanteById(rappresentanteId));
+        return ResponseEntity.ok(publicImprontaService.getPersonaRappresentanzaById(rappresentanteId));
     }
 
 
+    @GetMapping("/" + ApiPath.PERSONA_PATH + "/{personaId}/" + ApiPath.RAPPRESENTANTE_PATH)
+    public ResponseEntity<PersonaConRappresentanzeResponseDTO> getRappresentanteByPersona(
+            @PathVariable Long personaId
+    ) {
+        return ResponseEntity.ok(publicImprontaService.getRappresentanteByPersona(personaId));
+    }
+
+    @GetMapping("/" + ApiPath.ORGANO_PATH + "/{organoId}/" + ApiPath.RAPPRESENTANTE_PATH)
+    public ResponseEntity<List<PersonaRappresentanzaResponseDTO>> getRappresentanteByOrgano(
+            @PathVariable Long organoId
+    ) {
+        return ResponseEntity.ok(publicImprontaService.getRappresentanteByOrgano(organoId));
+    }
+
+
+    @GetMapping("/" + ApiPath.RAPPRESENTANTI_PATH)
+    public ResponseEntity<List<PersonaConRappresentanzeResponseDTO>> getRappresentanteAll(
+    ) {
+        return ResponseEntity.ok(publicImprontaService.getRappresentanteAll());
+    }
 
 }

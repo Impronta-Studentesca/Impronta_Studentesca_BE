@@ -15,5 +15,5 @@ public class PersonaConRappresentanzeResponseDTO {
 
     private PersonaResponseDTO persona;
 
-    private List<RuoloRappresentanzaDTO> ruoli; // o "incarichi"
+    private List<RuoloRappresentanzaDTO> cariche; // o "incarichi"
 }

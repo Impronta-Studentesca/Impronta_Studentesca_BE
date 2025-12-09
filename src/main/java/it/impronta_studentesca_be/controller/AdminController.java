@@ -63,13 +63,13 @@ public class AdminController {
 
     // ORGANI DI RAPPRESENTANZA
 
-    @PostMapping("/organo/{organoId}/persona/{personaId}")
-    public ResponseEntity<Void> assegnaPersonaAOrgano(@PathVariable Long personaId,
-                                                      @PathVariable Long organoId,
-                                                      @RequestParam String ruolo) {
-        adminImprontaService.assegnaPersonaAOrgano(personaId, organoId, ruolo);
-        return ResponseEntity.ok().build();
-    }
+//    @PostMapping("/organo/{organoId}/persona/{personaId}")
+//    public ResponseEntity<Void> assegnaPersonaAOrgano(@PathVariable Long personaId,
+//                                                      @PathVariable Long organoId,
+//                                                      @RequestParam String ruolo) {
+//        adminImprontaService.assegnaPersonaAOrgano(personaId, organoId, ruolo);
+//        return ResponseEntity.ok().build();
+//    }
 
     @DeleteMapping("/persona-rappresentanza/{personaRappresentanzaId}")
     public ResponseEntity<Void> eliminaPersonaRappresentanza(@PathVariable Long personaRappresentanzaId) {
