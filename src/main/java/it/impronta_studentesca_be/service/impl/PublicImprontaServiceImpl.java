@@ -8,13 +8,19 @@ import it.impronta_studentesca_be.entity.PersonaRappresentanza;
 import it.impronta_studentesca_be.entity.Ruolo;
 import it.impronta_studentesca_be.security.PersonaUserDetails;
 import it.impronta_studentesca_be.service.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Service;
 
 
@@ -433,23 +439,57 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
 
     @Override
-    public LoginResponseDTO login(LoginRequestDTO request) {
+    public void modificaPassword(Long personaId, String password) {
+
+        // recupero la persona
+        Persona persona = personaService.getById(personaId);
+
+        // controllo che la nuova password sia valorizzata
+        if (password == null || password.isBlank()) {
+            log.error("LA PASSWORD NON PUO' ESSERE VUOTA: {}", password);
+            throw new IllegalArgumentException("La password non può essere vuota.");
+        }
+
+        // LA PASSWORD PUò ESSERE MODIFICATA SOLO SE è STATA CREATA
+        if (persona.getPassword() == null || persona.getPassword().isBlank()) {
+            log.error("LA PASSWORD DEVE ESSERE CREATA PRIMA DI ESSERE MODIFICATA");
+            throw new IllegalStateException("Non puoi modificare la password se non è stata mai creata");
+        }
+
+        // creo/imposto la password codificata
+        persona.setPassword(passwordEncoder.encode(password));
+        personaService.update(persona);
+    }
+
+
+    @Override
+    public LoginResponseDTO login(HttpServletRequest request, HttpServletResponse response, LoginRequestDTO dto) {
+
 
         try {
-            log.info("L'UTENTE {} STA PROVANDO A LOGGARSI ", request.getEmail().trim().toLowerCase(Locale.ROOT));
+            log.info("L'UTENTE {} STA PROVANDO A LOGGARSI ", dto.getEmail().trim().toLowerCase(Locale.ROOT));
 
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()
-                    )
+                    new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getPassword())
             );
+
+// forza creazione sessione (così emette cookie se serve)
+            request.getSession(true);
+
+// crea contesto e setta auth
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(authentication);
+            SecurityContextHolder.setContext(context);
+
+// ✅ salva il contesto nella sessione associata al JSESSIONID
+            SecurityContextRepository repo = new HttpSessionSecurityContextRepository();
+            repo.saveContext(context, request, response);
 
 
             // Principal = il nostro PersonaUserDetails
             PersonaUserDetails userDetails = (PersonaUserDetails) authentication.getPrincipal();
             if (userDetails == null || userDetails.getPersona() == null) {
-                log.error("Tentativo di login fallito per email {}", request.getEmail());
+                log.error("Tentativo di login fallito per email {}", dto.getEmail());
                 throw new BadCredentialsException("IMPOSSIBILE AUTENTICARSI");
             }
             Persona persona = userDetails.getPersona();
@@ -459,17 +499,18 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
                     .map(Roles::getAuthority)          // "DIRETTIVO", "USER", ...
                     .collect(Collectors.toSet());
 
-            LoginResponseDTO response = new LoginResponseDTO();
-            response.setId(persona.getId());
-            response.setNome(persona.getNome());
-            response.setCognome(persona.getCognome());
-            response.setEmail(persona.getEmail());
-            response.setRuoli(ruoli);
+            LoginResponseDTO responseDTO = new LoginResponseDTO();
+            responseDTO.setId(persona.getId());
+            responseDTO.setNome(persona.getNome());
+            responseDTO.setCognome(persona.getCognome());
+            responseDTO.setEmail(persona.getEmail());
+            responseDTO.setRuoli(ruoli);
 
-            return response;
+
+            return responseDTO;
 
         } catch (BadCredentialsException ex) {
-            log.error("Tentativo di login fallito per email {}", request.getEmail());
+            log.error("Tentativo di login fallito per email {}", dto.getEmail());
             throw new BadCredentialsException("IMPOSSIBILE AUTENTICARSI");
         }
     }

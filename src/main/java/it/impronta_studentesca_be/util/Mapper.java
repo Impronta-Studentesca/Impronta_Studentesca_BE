@@ -40,7 +40,11 @@ public class Mapper {
         } else {
 
             // Carico il corso di studi (obbligatorio)
-            CorsoDiStudi corsoDiStudi = corsoDiStudiService.getById(dto.getCorsoDiStudiId());
+
+            CorsoDiStudi corsoDiStudi = null;
+            if (dto.getCorsoDiStudiId() != null){
+                corsoDiStudi = corsoDiStudiService.getById(dto.getCorsoDiStudiId());
+            }
 
             // Carico l'ufficio se presente
             Ufficio ufficio = null;
@@ -48,8 +52,14 @@ public class Mapper {
                 ufficio = ufficioService.getById(dto.getUfficioId());
             }
 
-            // Ruoli: esempio, assegno di default USER
-            Ruolo ruoloUser = ruoloService.getByNome(Roles.USER);
+            Set<Ruolo> ruoliUser = null;
+            if(dto.getRuoli() == null || dto.getRuoli().isEmpty()){
+                //assegno di default USER
+                ruoliUser = Set.of(ruoloService.getByNome(Roles.USER));
+            }else{
+                ruoliUser = dto.getRuoli();
+            }
+
 
             return Persona.builder()
                     .id(dto.getId())                 // di solito null in create
@@ -59,7 +69,7 @@ public class Mapper {
                     .corsoDiStudi(corsoDiStudi)
                     .ufficio(ufficio)
                     .annoCorso(dto.getAnnoCorso())
-                    .ruoli(Set.of(ruoloUser))        // o un Set vuoto se non vuoi default
+                    .ruoli(ruoliUser)        // o un Set vuoto se non vuoi default
                     .build();
         }
     }

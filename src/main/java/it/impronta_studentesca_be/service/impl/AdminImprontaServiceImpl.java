@@ -46,6 +46,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
     @Override
     public PersonaResponseDTO creaPersona(PersonaRequestDTO persona) {
 
+        persona.setId(null);
         return new PersonaResponseDTO(personaService.create(mapper.toPersona(persona)));
 
     }

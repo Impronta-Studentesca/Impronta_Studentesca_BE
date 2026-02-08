@@ -1,5 +1,6 @@
 package it.impronta_studentesca_be.controller;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import it.impronta_studentesca_be.constant.ApiPath;
 import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.service.AdminImprontaService;

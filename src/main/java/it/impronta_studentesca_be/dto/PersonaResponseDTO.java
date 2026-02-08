@@ -39,7 +39,7 @@ public class PersonaResponseDTO {
                 .map(Ruolo::getNome)
                 .map(Roles::name)
                 .collect(Collectors.toSet());
-        this.corsoDiStudi = new CorsoDiStudiResponseDTO(persona.getCorsoDiStudi());
+        this.corsoDiStudi = persona.getCorsoDiStudi() != null ?  new CorsoDiStudiResponseDTO(persona.getCorsoDiStudi()) : null;
         this.annoCorso = persona.getAnnoCorso();
         this.ufficio = persona.getUfficio() != null ? new UfficioResponseDTO(persona.getUfficio()) : new UfficioResponseDTO();
 

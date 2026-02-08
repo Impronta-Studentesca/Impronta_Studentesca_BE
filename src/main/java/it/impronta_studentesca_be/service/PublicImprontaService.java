@@ -2,6 +2,8 @@ package it.impronta_studentesca_be.service;
 
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.List;
 
@@ -59,5 +61,7 @@ public interface PublicImprontaService {
 
     void creaPassword(Long personaId, String password);
 
-    LoginResponseDTO login( LoginRequestDTO request) throws IllegalAccessException;
+    void modificaPassword(Long personaId, String password);
+
+    LoginResponseDTO login(HttpServletRequest request, HttpServletResponse response, LoginRequestDTO dto);
 }
