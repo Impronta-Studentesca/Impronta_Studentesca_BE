@@ -1,5 +1,6 @@
 package it.impronta_studentesca_be.dto;
 
+import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.constant.TipoCorso;
 import it.impronta_studentesca_be.entity.Ruolo;
 import lombok.AllArgsConstructor;
@@ -26,14 +27,12 @@ public class PersonaRequestDTO {
 
     private Long corsoDiStudiId;
 
-    private TipoCorso tipoCorso;
-
     private Integer annoCorso;
 
     private Long ufficioId;
 
     private boolean staff;
 
-    private Set<Ruolo> ruoli;
+    private Set<Roles> ruoli;
 
 }

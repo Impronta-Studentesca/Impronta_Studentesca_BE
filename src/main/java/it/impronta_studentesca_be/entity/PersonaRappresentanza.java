@@ -43,6 +43,23 @@ public class PersonaRappresentanza {
 
     }
 
+    public PersonaRappresentanza(Persona persona, OrganoRappresentanza organoRappresentanza, LocalDate dataInizio) {
+
+        this.persona = persona;
+        this.organoRappresentanza = organoRappresentanza;
+        this.dataInizio = dataInizio;
+
+    }
+
+    public PersonaRappresentanza(Persona persona, OrganoRappresentanza organoRappresentanza, LocalDate dataInizio, LocalDate dataFine) {
+
+        this.persona = persona;
+        this.organoRappresentanza = organoRappresentanza;
+        this.dataInizio = dataInizio;
+        this.dataFine = dataFine;
+
+    }
+
     @PrePersist
     protected void onCreate() {
         generaDataInizio();
@@ -75,6 +92,13 @@ public class PersonaRappresentanza {
         }
 
         this.dataFine = dataInizio.plusYears(durataAnni);
+    }
+
+
+    public boolean isAttiva(){
+
+        LocalDate today = LocalDate.now();
+        return (this.getDataInizio() != null && this.getDataInizio().isAfter(today)) && (this.getDataFine() == null || this.getDataFine().isBefore(today));
     }
 
 

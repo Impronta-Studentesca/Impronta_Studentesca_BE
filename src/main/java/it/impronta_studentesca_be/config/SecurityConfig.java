@@ -58,6 +58,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authenticationProvider(authenticationProvider())
 
@@ -111,6 +112,16 @@ public class SecurityConfig {
                         // ADMIN solo DIRETTIVO
                         .requestMatchers("/" + ApiPath.BASE_PATH + "/" + ApiPath.ADMIN_PATH + "/**")
                         .hasAuthority("DIRETTIVO")
+
+                        .requestMatchers("/" + ApiPath.BASE_PATH + "/" + ApiPath.STAFF_PATH + "/**")
+                        .hasAnyAuthority(
+                                "DIRETTIVO",
+                                "DIRETTIVO_DIPARTIMENTALE",
+                                "STAFF",
+                                "RAPPRESENTANTE",
+                                "RESPONSABILE_UFFICIO"
+                        )
+
 
                 );
 

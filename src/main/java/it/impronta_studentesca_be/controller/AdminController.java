@@ -4,11 +4,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import it.impronta_studentesca_be.constant.ApiPath;
 import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.service.AdminImprontaService;
+import it.impronta_studentesca_be.service.PublicImprontaService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -18,6 +21,9 @@ public class AdminController {
     @Autowired
     AdminImprontaService  adminImprontaService;
 
+    @Autowired
+    PublicImprontaService publicImprontaService;
+
     //PERSONA
 
     @PostMapping("/persona")
@@ -26,36 +32,27 @@ public class AdminController {
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/persona")
-    public ResponseEntity<PersonaResponseDTO> aggiornaPersona(@RequestBody PersonaRequestDTO persona) {
-        PersonaResponseDTO response = adminImprontaService.aggiornaPersona(persona);
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/persona/{personaId}")
-    public ResponseEntity<Void> eliminaPersona(@PathVariable Long personaId) {
-        adminImprontaService.eliminaPersona(personaId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/persona/{personaId}/foto")
-    public ResponseEntity<ImageUploadResponseDTO> uploadFotoPersona(@PathVariable Long personaId,
-                                                                    @RequestParam("file") MultipartFile file) {
-        ImageUploadResponseDTO response = adminImprontaService.uploadFotoPersona(personaId, file);
-        return ResponseEntity.ok(response);
-    }
 
     // DIRETTIVO
 
-    @PostMapping("/direttivo/{direttivoId}/persona/{personaId}")
-    public ResponseEntity<Void> assegnaPersonaADirettivo(@PathVariable Long personaId,
-                                                         @PathVariable Long direttivoId,
-                                                         @RequestParam String ruolo) {
-        adminImprontaService.assegnaPersonaADirettivo(personaId, direttivoId, ruolo);
+    @GetMapping("/" + ApiPath.DIRETTIVI_PATH )
+    public ResponseEntity<List<DirettivoResponseDTO>> getDirettivi() {
+        return ResponseEntity.ok(publicImprontaService.getDirettivi());
+    }
+
+    @PostMapping("/" + ApiPath.DIRETTIVO_PATH)
+    public ResponseEntity<Void> assegnaPersonaADirettivo(@RequestBody PersonaDirettivoRequestDTO personaDirettivoRequestDTO) {
+        adminImprontaService.assegnaPersonaADirettivo(personaDirettivoRequestDTO.getPersonaId(), personaDirettivoRequestDTO.getDirettivoId(), personaDirettivoRequestDTO.getRuoloNelDirettivo());
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/direttivo/{direttivoId}/persona/{personaId}")
+    @PutMapping("/" + ApiPath.DIRETTIVO_PATH)
+    public ResponseEntity<Void> modificaPersonaADirettivo(@RequestBody PersonaDirettivoRequestDTO personaDirettivoRequestDTO) {
+        adminImprontaService.modificaPersonaADirettivo(personaDirettivoRequestDTO.getPersonaId(), personaDirettivoRequestDTO.getDirettivoId(), personaDirettivoRequestDTO.getRuoloNelDirettivo());
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/" + ApiPath.DIRETTIVO_PATH + "/{personaId}/{direttivoId}")
     public ResponseEntity<Void> rimuoviPersonaDaDirettivo(@PathVariable Long personaId,
                                                           @PathVariable Long direttivoId) {
         adminImprontaService.rimuoviPersonaDaDirettivo(personaId, direttivoId);
@@ -64,18 +61,28 @@ public class AdminController {
 
     // ORGANI DI RAPPRESENTANZA
 
-//    @PostMapping("/organo/{organoId}/persona/{personaId}")
-//    public ResponseEntity<Void> assegnaPersonaAOrgano(@PathVariable Long personaId,
-//                                                      @PathVariable Long organoId,
-//                                                      @RequestParam String ruolo) {
-//        adminImprontaService.assegnaPersonaAOrgano(personaId, organoId, ruolo);
-//        return ResponseEntity.ok().build();
-//    }
+    @PostMapping("/" + ApiPath.RAPPRESENTANTE_PATH)
+    public ResponseEntity<Void> assegnaPersonaAOrgano(@RequestBody PersonaRappresentanzaRequestDTO personaRappresentanzaRequestDTO) {
+        adminImprontaService.assegnaPersonaRappresentanza(personaRappresentanzaRequestDTO.getPersonaId(), personaRappresentanzaRequestDTO.getOrganoRappresentanzaId(), personaRappresentanzaRequestDTO.getDataInizio(), personaRappresentanzaRequestDTO.getDataFine());
+        return ResponseEntity.ok().build();
+    }
 
-    @DeleteMapping("/persona-rappresentanza/{personaRappresentanzaId}")
+    @PutMapping("/" + ApiPath.RAPPRESENTANTE_PATH)
+    public ResponseEntity<Void> modificaPersonaAOrgano(@RequestBody PersonaRappresentanzaRequestDTO personaRappresentanzaRequestDTO) {
+        adminImprontaService.modificaPersonaRappresentanza(personaRappresentanzaRequestDTO.getPersonaId(), personaRappresentanzaRequestDTO.getOrganoRappresentanzaId(), personaRappresentanzaRequestDTO.getDataInizio(), personaRappresentanzaRequestDTO.getDataFine());
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/" + ApiPath.RAPPRESENTANTE_PATH + "/{personaRappresentanzaId}")
     public ResponseEntity<Void> eliminaPersonaRappresentanza(@PathVariable Long personaRappresentanzaId) {
         adminImprontaService.eliminaPersonaRappresentanza(personaRappresentanzaId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/" + ApiPath.ORGANI_PATH)
+    public ResponseEntity<List<OrganoRappresentanzaDTO>> getOrganoAll(
+    ) {
+        return ResponseEntity.ok(publicImprontaService.getOrganoAll());
     }
 
     // DIPARTIMENTI
@@ -86,12 +93,36 @@ public class AdminController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("/dipartimento")
+    public ResponseEntity<DipartimentoResponseDTO> modificaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
+        DipartimentoResponseDTO response = adminImprontaService.modificaDipartimento(dipartimento);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/dipartimento")
+    public ResponseEntity eliminaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
+         adminImprontaService.eliminaDipartimento(dipartimento);
+        return ResponseEntity.ok().build();
+    }
+
     // CORSI DI STUDIO
 
     @PostMapping("/corso")
     public ResponseEntity<CorsoDiStudiResponseDTO> creaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
         CorsoDiStudiResponseDTO response = adminImprontaService.creaCorso(corso);
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/corso")
+    public ResponseEntity<CorsoDiStudiResponseDTO> modificaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
+        CorsoDiStudiResponseDTO response = adminImprontaService.modificaCorso(corso);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/corso")
+    public ResponseEntity eliminaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
+        adminImprontaService.eliminaCorso(corso);
+        return ResponseEntity.ok().build();
     }
 
     // UFFICI

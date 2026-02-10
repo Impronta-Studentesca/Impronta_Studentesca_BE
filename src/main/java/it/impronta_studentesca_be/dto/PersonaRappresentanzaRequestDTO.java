@@ -17,7 +17,4 @@ public class PersonaRappresentanzaRequestDTO {
 
     private LocalDate dataFine;
 
-    private String carica;                  // es. "Rappresentante degli studenti"
-
-    private String note;
 }

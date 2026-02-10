@@ -1,12 +1,15 @@
 package it.impronta_studentesca_be.config;
 
 import io.imagekit.sdk.ImageKit;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@Slf4j
 public class ImageKitConfig {
 
     @Value("${imagekit.public-key}")
@@ -27,5 +30,12 @@ public class ImageKitConfig {
         ImageKit imageKit = ImageKit.getInstance();
         imageKit.setConfig(config);
         return imageKit;
+    }
+
+    @PostConstruct
+    void logConfig() {
+        log.info("ImageKit configured. urlEndpoint={}, publicKeyPrefix={}",
+                urlEndpoint,
+                publicKey != null && publicKey.length() >= 6 ? publicKey.substring(0, 6) + "***" : "null");
     }
 }

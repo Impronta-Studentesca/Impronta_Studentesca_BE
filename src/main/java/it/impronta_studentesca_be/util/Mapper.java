@@ -1,6 +1,7 @@
 package it.impronta_studentesca_be.util;
 
 import it.impronta_studentesca_be.constant.Roles;
+import it.impronta_studentesca_be.constant.RuoloDirettivo;
 import it.impronta_studentesca_be.dto.CorsoDiStudiRequestDTO;
 import it.impronta_studentesca_be.dto.DipartimentoRequestDTO;
 import it.impronta_studentesca_be.dto.PersonaRequestDTO;
@@ -10,8 +11,8 @@ import it.impronta_studentesca_be.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class Mapper {
@@ -35,8 +36,8 @@ public class Mapper {
 
         if (dto == null) {
             return null;
-        } else if (dto.getId() != null) {
-            return personaService.getById(dto.getId());
+//        } else if (dto.getId() != null) {
+//            return personaService.getById(dto.getId());
         } else {
 
             // Carico il corso di studi (obbligatorio)
@@ -52,15 +53,15 @@ public class Mapper {
                 ufficio = ufficioService.getById(dto.getUfficioId());
             }
 
+
             Set<Ruolo> ruoliUser = null;
             if(dto.getRuoli() == null || dto.getRuoli().isEmpty()){
                 //assegno di default USER
                 ruoliUser = Set.of(ruoloService.getByNome(Roles.USER));
-            }else{
-                ruoliUser = dto.getRuoli();
+            }else {
+                ruoliUser =  dto.getRuoli().stream().map(ruolo -> ruoloService.getByNome(ruolo)).collect(Collectors.toSet());
+
             }
-
-
             return Persona.builder()
                     .id(dto.getId())                 // di solito null in create
                     .nome(dto.getNome())
@@ -80,7 +81,7 @@ public class Mapper {
         }
         if (dto == null) {
             return null;
-        } else if (dto.getId() != null) {
+        } else if (dto.getId() != null && (dto.getCodice() == null || dto.getCodice().isEmpty() || dto.getNome() == null || dto.getNome().isEmpty())) {
             return dipartimentoService.getById(dto.getId());
         } else {
 
@@ -95,8 +96,8 @@ public class Mapper {
     public CorsoDiStudi toCorsoDiSudi(CorsoDiStudiRequestDTO dto) {
         if (dto == null) {
             return null;
-        } else if (dto.getId() != null) {
-            return corsoDiStudiService.getById(dto.getId());
+//        } else if (dto.getId() != null) {
+//            return corsoDiStudiService.getById(dto.getId());
         } else {
 
             return CorsoDiStudi.builder()
@@ -107,6 +108,7 @@ public class Mapper {
                     .build();
         }
     }
+
     public Ufficio toUfficio(UfficioRequestDTO dto) {
         if (dto == null) {
             return null;
@@ -124,5 +126,32 @@ public class Mapper {
                 .nome(dto.getNome())
                 .responsabile(responsabile)
                 .build();
-    }}
+    }
+    }
+
+    public Set<RuoloDirettivo> getRuoliDirettivo(Set<Ruolo> ruoli) {
+        if (ruoli == null || ruoli.isEmpty()) return Collections.emptySet();
+
+        return ruoli.stream()
+                .map(Ruolo::getNome)
+                .map(Object::toString)
+                .map(Mapper::normalize)
+                .map(Mapper::toRuoloDirettivoOrNull)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparingInt(RuoloDirettivo::getOrdine))
+                .collect(Collectors.toCollection(LinkedHashSet::new)); // mantiene ordine
+    }
+
+    private static String normalize(String raw) {
+        if (raw == null) return "";
+        return raw.trim().toUpperCase().replace(' ', '_');
+    }
+
+    private static RuoloDirettivo toRuoloDirettivoOrNull(String key) {
+        try {
+            return RuoloDirettivo.valueOf(key);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
 }

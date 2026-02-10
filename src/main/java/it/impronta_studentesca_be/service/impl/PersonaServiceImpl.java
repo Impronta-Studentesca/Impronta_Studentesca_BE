@@ -1,8 +1,8 @@
 package it.impronta_studentesca_be.service.impl;
 
 import it.impronta_studentesca_be.constant.Roles;
-import it.impronta_studentesca_be.entity.CorsoDiStudi;
 import it.impronta_studentesca_be.entity.Persona;
+import it.impronta_studentesca_be.entity.Ruolo;
 import it.impronta_studentesca_be.exception.*;
 import it.impronta_studentesca_be.repository.PersonaRepository;
 import it.impronta_studentesca_be.service.PersonaService;
@@ -10,8 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -39,6 +43,59 @@ public class PersonaServiceImpl implements PersonaService {
 
     }
 
+    private Persona mergeNotNull(Persona db, Persona persona) {
+        if (persona == null) return db;
+
+        if (persona.getRuoli() != null) {
+            if (db.getRuoli() == null) {
+                db.setRuoli(new HashSet<>());
+            }
+            db.getRuoli().addAll(persona.getRuoli()); // aggiunge, non rimpiazza
+        }
+
+        if (persona.getNome() != null) {
+            db.setNome(persona.getNome());
+        }
+        if (persona.getCognome() != null) {
+            db.setCognome(persona.getCognome());
+        }
+        if (persona.getEmail() != null) {
+            db.setEmail(persona.getEmail()); // usa il setter che normalizza
+        }
+        if (persona.getPassword() != null) {
+            db.setPassword(persona.getPassword());
+        }
+
+        // relazioni
+        if (persona.getCorsoDiStudi() != null) {
+            db.setCorsoDiStudi(persona.getCorsoDiStudi());
+        }
+        if (persona.getAnnoCorso() != null) {
+            db.setAnnoCorso(persona.getAnnoCorso());
+        }
+        if (persona.getUfficio() != null) {
+            db.setUfficio(persona.getUfficio());
+        }
+
+        // foto
+        if (persona.getFotoUrl() != null) {
+            db.setFotoUrl(persona.getFotoUrl());
+        }
+        if (persona.getFotoThumbnailUrl() != null) {
+            db.setFotoThumbnailUrl(persona.getFotoThumbnailUrl());
+        }
+        if (persona.getFotoFileId() != null) {
+            db.setFotoFileId(persona.getFotoFileId());
+        }
+
+        // di solito NO:
+        // - db.setId(...)
+        // - db.setDataRegistrazione(...)
+
+        return db;
+    }
+
+
     @Override
     public Persona update(Persona persona) {
         if (persona.getId() == null) {
@@ -52,7 +109,9 @@ public class PersonaServiceImpl implements PersonaService {
             // Verifico che esista prima di aggiornare
             checkExistById(id);
 
-            Persona updated = personaRepository.save(persona);
+            Persona db = getById(id);
+
+            Persona updated = personaRepository.save(mergeNotNull(db, persona));
             log.info("PERSONA AGGIORNATA CON ID: {}", updated.getId());
             return updated;
 
@@ -249,4 +308,70 @@ public class PersonaServiceImpl implements PersonaService {
             );
         }
     }
+
+    @Override
+    public Set<Ruolo> aggiungiRuolo(Long personaId, Roles nome) {
+
+        log.info("RICHIESTA AGGIUNTA RUOLO: PERSONA_ID={}, RUOLO={}", personaId, nome);
+
+        Persona persona = getById(personaId);
+
+        Ruolo ruolo = ruoloService.getByNome(nome);
+        log.info("RUOLO TROVATO: RUOLO_NOME={}, RUOLO_ID={}", ruolo.getNome(), ruolo.getId());
+
+        if (persona.getRuoli() == null) {
+            log.warn("SET RUOLI NULLO: PERSONA_ID={}, INIZIALIZZO SET VUOTO", personaId);
+            persona.setRuoli(new java.util.HashSet<>());
+        }
+
+        if (!persona.getRuoli().contains(ruolo)) {
+            persona.getRuoli().add(ruolo);
+            Persona updated = update(persona);
+
+            log.info("RUOLO AGGIUNTO CON SUCCESSO: PERSONA_ID={}, RUOLO={}", personaId, nome);
+            log.debug("RUOLI DOPO AGGIUNTA: PERSONA_ID={}, RUOLI={}",
+                    personaId,
+                    updated.getRuoli() != null ? updated.getRuoli().stream().map(Ruolo::getNome).toList() : "NULL"
+            );
+
+            return updated.getRuoli();
+        }
+
+        log.error("RUOLO GIA' PRESENTE: NESSUNA MODIFICA. PERSONA_ID={}, RUOLO={}", personaId, nome);
+        return persona.getRuoli();
+    }
+
+    @Override
+    public Set<Ruolo> rimuoviRuolo(Long personaId, Roles nome) {
+
+        log.info("RICHIESTA RIMOZIONE RUOLO: PERSONA_ID={}, RUOLO={}", personaId, nome);
+
+        Persona persona = getById(personaId);
+
+        Ruolo ruolo = ruoloService.getByNome(nome);
+        log.debug("RUOLO TROVATO: RUOLO_NOME={}, RUOLO_ID={}", ruolo.getNome(), ruolo.getId());
+
+        if (persona.getRuoli() == null) {
+            log.error("SET RUOLI NULLO: PERSONA_ID={}, NIENTE DA RIMUOVERE", personaId);
+            return java.util.Collections.emptySet();
+        }
+
+        if (persona.getRuoli().contains(ruolo)) {
+            persona.getRuoli().remove(ruolo);
+            Persona updated = update(persona);
+
+            log.info("RUOLO RIMOSSO CON SUCCESSO: PERSONA_ID={}, RUOLO={}", personaId, nome);
+            log.debug("RUOLI DOPO RIMOZIONE: PERSONA_ID={}, RUOLI={}",
+                    personaId,
+                    updated.getRuoli() != null ? updated.getRuoli().stream().map(Ruolo::getNome).toList() : "NULL"
+            );
+
+            return updated.getRuoli();
+        }
+
+        log.error("RUOLO NON PRESENTE: NESSUNA MODIFICA. PERSONA_ID={}, RUOLO={}", personaId, nome);
+        return persona.getRuoli();
+    }
+
+
 }

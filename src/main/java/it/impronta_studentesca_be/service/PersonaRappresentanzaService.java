@@ -1,25 +1,26 @@
 package it.impronta_studentesca_be.service;
 
-import it.impronta_studentesca_be.entity.CorsoDiStudi;
-import it.impronta_studentesca_be.entity.OrganoRappresentanza;
-import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface PersonaRappresentanzaService {
 
-    PersonaRappresentanza create(Persona persona, OrganoRappresentanza organo);
-
+    PersonaRappresentanza create(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine);
     void checkExistById(Long id);
 
-    PersonaRappresentanza update(PersonaRappresentanza rappresentante);
+    void checkExistByPersonaIdEOraganoId(Long personaId, Long organoRappresentanzaId);
 
-    void delete(Long id);
+    PersonaRappresentanza update(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine);
+
+    PersonaRappresentanza delete(Long id);
 
     PersonaRappresentanza getById(Long id);
 
     List<PersonaRappresentanza> getByPersona(Long personaId);
+
+    List<PersonaRappresentanza> getAttiveByPersona(Long personaId);
 
     List<PersonaRappresentanza> getByOrganoId(Long organoId);
 

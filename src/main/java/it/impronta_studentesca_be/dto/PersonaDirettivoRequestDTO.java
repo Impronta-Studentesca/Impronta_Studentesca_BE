@@ -11,9 +11,5 @@ public class PersonaDirettivoRequestDTO {
 
     private Long direttivoId;
 
-    /**
-     * Ruolo ricoperto da questa persona all'interno del direttivo,
-     * es. "Presidente", "Vicepresidente", "Tesoriere"...
-     */
     private String ruoloNelDirettivo;
 }

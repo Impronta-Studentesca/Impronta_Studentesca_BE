@@ -40,9 +40,9 @@ public class ApiPath {
 
     public static final String STAFF_PATH = "staff";
 
-    public static final String DIRETTIVO_PATH = "direttvo";
+    public static final String DIRETTIVO_PATH = "direttivo";
 
-    public static final String DIRETTIVI_PATH = "direttvi";
+    public static final String DIRETTIVI_PATH = "direttivi";
 
     public static final String TIPO_PATH = "tipo";
 

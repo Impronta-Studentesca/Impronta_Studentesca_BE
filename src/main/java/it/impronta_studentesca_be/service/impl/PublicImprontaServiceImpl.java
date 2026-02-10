@@ -8,6 +8,7 @@ import it.impronta_studentesca_be.entity.PersonaRappresentanza;
 import it.impronta_studentesca_be.entity.Ruolo;
 import it.impronta_studentesca_be.security.PersonaUserDetails;
 import it.impronta_studentesca_be.service.*;
+import it.impronta_studentesca_be.util.Mapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +61,9 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
     @Autowired
     private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private Mapper mapper;
 
 
     /// /////////////////////////////////////////////////////////////////////////
@@ -163,6 +167,17 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     /// //////////////////////////////////////////////////////////
 
 
+    @Override
+    public PersonaPhotoResponseDTO getFotoPersona(Long personaId) {
+        Persona persona = personaService.getById(personaId);
+
+        PersonaPhotoResponseDTO dto = new PersonaPhotoResponseDTO();
+        dto.setUrl(persona.getFotoUrl());
+        dto.setThumbnailUrl(persona.getFotoThumbnailUrl());
+        dto.setFileId(persona.getFotoFileId());
+        // width/height se li salvi su Persona, altrimenti null
+        return dto;
+    }
 
     /*
     TESTATO 04/12/2025 FUNZIONA
@@ -514,4 +529,6 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
             throw new BadCredentialsException("IMPOSSIBILE AUTENTICARSI");
         }
     }
+
+
 }

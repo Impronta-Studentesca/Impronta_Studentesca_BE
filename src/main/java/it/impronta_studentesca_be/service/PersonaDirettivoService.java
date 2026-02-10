@@ -3,14 +3,22 @@ package it.impronta_studentesca_be.service;
 import it.impronta_studentesca_be.entity.Direttivo;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaDirettivo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 public interface PersonaDirettivoService {
 
-    PersonaDirettivo addPersonaToDirettivo(Persona persona, Direttivo direttivo, String ruoloNelDirettivo);
+    PersonaDirettivo addPersonaToDirettivo(Long personaId, Long direttivoId, String ruoloNelDirettivo);
 
-    void removePersonaFromDirettivo(Persona persona, Direttivo direttivo);
+    @Transactional
+    PersonaDirettivo updatePersonaToDirettivo(Long personaId, Long direttivoId, String ruoloNelDirettivo);
+
+    void removePersonaFromDirettivo(Long personaId, Long direttivoId);
 
     List<PersonaDirettivo> getByDirettivo(Long direttivoId);
+
+    List<PersonaDirettivo> getDirettivoGeneraleAttivoByPersona(Long personaId);
+
+    List<String> getRuoliDirettivoGeneraleAttivi(Long personaId);
 }

@@ -25,21 +25,68 @@ public class ImageKitStorageServiceImpl implements ImageStorageService {
 
     @Override
     public ImageUploadResponseDTO uploadPersonaPhoto(Long personaId, MultipartFile file) {
+
+        log.info("INIZIO UPLOAD IMAGEKIT. PERSONA_ID={}", personaId);
+
+        if (personaId == null) {
+            log.error("UPLOAD IMAGEKIT FALLITO: PERSONA_ID NULL");
+            throw new IllegalArgumentException("personaId non valido");
+        }
+
+        if (file == null || file.isEmpty()) {
+            log.warn("UPLOAD IMAGEKIT BLOCCATO: FILE NULL O VUOTO. PERSONA_ID={}", personaId);
+            throw new IllegalArgumentException("File immagine mancante o vuoto");
+        }
+
         try {
             // Nome file “pulito”
-            String originalName = file.getOriginalFilename();
+            String originalName;
+            try {
+                originalName = file.getOriginalFilename();
+            } catch (Exception e) {
+                log.error("ERRORE LETTURA ORIGINAL FILENAME. PERSONA_ID={}", personaId, e);
+                originalName = null;
+            }
+
             String safeName = (originalName != null && !originalName.isBlank())
                     ? originalName
                     : "persona-" + personaId + ".jpg";
 
+            log.info("PREPARAZIONE FILE UPLOAD. PERSONA_ID={}, SAFE_NAME={}, SIZE_BYTES={}",
+                    personaId, safeName, file.getSize());
+
             // Contenuto in base64 (come vuole l’SDK)
-            String base64 = Base64.getEncoder().encodeToString(file.getBytes());
+            String base64;
+            try {
+                base64 = Base64.getEncoder().encodeToString(file.getBytes());
+            } catch (Exception e) {
+                log.error("ERRORE LETTURA BYTES/BASE64. PERSONA_ID={}, SAFE_NAME={}", personaId, safeName, e);
+                throw new RuntimeException("Errore lettura file immagine", e);
+            }
 
-            FileCreateRequest request = new FileCreateRequest(base64, safeName);
-            request.setFolder(personaFolder);
-            request.setUseUniqueFileName(true);
+            FileCreateRequest request;
+            try {
+                request = new FileCreateRequest(base64, safeName);
+                request.setFolder(personaFolder);
+                request.setUseUniqueFileName(true);
+            } catch (Exception e) {
+                log.error("ERRORE COSTRUZIONE REQUEST IMAGEKIT. PERSONA_ID={}, SAFE_NAME={}", personaId, safeName, e);
+                throw new RuntimeException("Errore preparazione richiesta ImageKit", e);
+            }
 
-            Result result = imageKit.upload(request);
+            Result result;
+            try {
+                log.info("CHIAMATA IMAGEKIT UPLOAD. PERSONA_ID={}, FOLDER={}", personaId, personaFolder);
+                result = imageKit.upload(request);
+            } catch (Exception e) {
+                log.error("ERRORE CHIAMATA IMAGEKIT UPLOAD. PERSONA_ID={}, SAFE_NAME={}", personaId, safeName, e);
+                throw new RuntimeException("Errore upload immagine su ImageKit", e);
+            }
+
+            if (result == null || result.getFileId() == null || result.getUrl() == null) {
+                log.error("RISPOSTA IMAGEKIT NON VALIDA. PERSONA_ID={}, RESULT={}", personaId, result);
+                throw new RuntimeException("Risposta ImageKit non valida");
+            }
 
             ImageUploadResponseDTO dto = new ImageUploadResponseDTO();
             dto.setFileId(result.getFileId());
@@ -48,16 +95,21 @@ public class ImageKitStorageServiceImpl implements ImageStorageService {
             dto.setWidth(result.getWidth());
             dto.setHeight(result.getHeight());
 
-            log.info("Upload foto persona {} completato. fileId={}, url={}",
+            log.info("UPLOAD IMAGEKIT COMPLETATO. PERSONA_ID={}, FILE_ID={}, URL={}",
                     personaId, result.getFileId(), result.getUrl());
 
             return dto;
 
+        } catch (IllegalArgumentException e) {
+            log.warn("UPLOAD IMAGEKIT FALLITO PER INPUT NON VALIDO. PERSONA_ID={}. MSG={}", personaId, e.getMessage());
+            throw e;
+
         } catch (Exception e) {
-            log.error("Errore durante upload foto persona {} su ImageKit", personaId, e);
+            log.error("UPLOAD IMAGEKIT FALLITO. PERSONA_ID={}", personaId, e);
             throw new RuntimeException("Errore upload immagine", e);
         }
     }
+
 
 
 

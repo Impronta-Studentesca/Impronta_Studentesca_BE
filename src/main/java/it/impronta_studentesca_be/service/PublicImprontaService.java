@@ -24,6 +24,8 @@ public interface PublicImprontaService {
     List<UfficioResponseDTO> getUffici();
 
 
+    PersonaPhotoResponseDTO getFotoPersona(Long personaId);
+
     // Persone
     PersonaResponseDTO getPersonaById(Long personaId);
     List<PersonaResponseDTO> getStaff();
@@ -64,4 +66,7 @@ public interface PublicImprontaService {
     void modificaPassword(Long personaId, String password);
 
     LoginResponseDTO login(HttpServletRequest request, HttpServletResponse response, LoginRequestDTO dto);
+
+
+
 }

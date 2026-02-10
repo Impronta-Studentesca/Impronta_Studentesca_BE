@@ -18,4 +18,6 @@ public interface DirettivoRepository extends JpaRepository<Direttivo, Long> {
     List<Direttivo> findByDipartimento_Id(Long dipartimentoId);
 
     List<Direttivo> findByFineMandato(LocalDate fineMandato);
+
+
 }

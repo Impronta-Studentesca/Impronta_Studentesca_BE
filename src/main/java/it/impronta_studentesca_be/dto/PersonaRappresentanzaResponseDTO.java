@@ -16,9 +16,9 @@ public class PersonaRappresentanzaResponseDTO {
 
     private Long id;
 
-    private PersonaResponseDTO persona;
+    private Long personaId;
 
-    private OrganoRappresentanzaDTO organo;
+    private Long organoId;
 
     private LocalDate dataInizio;
 
@@ -28,11 +28,11 @@ public class PersonaRappresentanzaResponseDTO {
     // Costruttore che prende l'entità
     public PersonaRappresentanzaResponseDTO(PersonaRappresentanza entity) {
         this.id = entity.getId();
-        this.persona = entity.getPersona() != null
-                ? new PersonaResponseDTO(entity.getPersona())
+        this.personaId = entity.getPersona() != null
+                ? entity.getPersona().getId()
                 : null;
-        this.organo = entity.getOrganoRappresentanza() != null
-                ? new OrganoRappresentanzaDTO(entity.getOrganoRappresentanza())
+        this.organoId = entity.getOrganoRappresentanza() != null
+                ? entity.getOrganoRappresentanza().getId()
                 : null;
         this.dataInizio = entity.getDataInizio();
         this.dataFine = entity.getDataFine();

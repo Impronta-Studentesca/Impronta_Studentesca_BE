@@ -83,6 +83,12 @@ public class PublicController {
 
     // PERSONE / STAFF
 
+
+    @GetMapping("/persona/{personaId}/foto")
+    public ResponseEntity<PersonaPhotoResponseDTO> getFotoPersona(@PathVariable Long personaId) {
+        return ResponseEntity.ok(publicImprontaService.getFotoPersona(personaId));
+    }
+
     @GetMapping("/" + ApiPath.PERSONA_PATH + "/{personaId}")
     public ResponseEntity<PersonaResponseDTO> getPersonaById(
             @PathVariable Long personaId
@@ -119,10 +125,6 @@ public class PublicController {
         return ResponseEntity.ok(publicImprontaService.getDirettivoById(direttivoId));
     }
 
-    @GetMapping("/" + ApiPath.DIRETTIVI_PATH )
-    public ResponseEntity<List<DirettivoResponseDTO>> getDirettivi() {
-        return ResponseEntity.ok(publicImprontaService.getDirettivi());
-    }
 
     @GetMapping("/" + ApiPath.TIPO_PATH + "/{tipo}/" + ApiPath.DIRETTIVI_PATH)
     public ResponseEntity<List<DirettivoResponseDTO>> getDirettivoById(
@@ -170,11 +172,6 @@ public class PublicController {
         return ResponseEntity.ok(publicImprontaService.getOrganoById(organoId));
     }
 
-    @GetMapping("/" + ApiPath.ORGANI_PATH)
-    public ResponseEntity<List<OrganoRappresentanzaDTO>> getOrganoAll(
-    ) {
-        return ResponseEntity.ok(publicImprontaService.getOrganoAll());
-    }
 
     // RAPPRESENTANTI
 

@@ -12,15 +12,15 @@ import lombok.NoArgsConstructor;
 @Builder
 public class PersonaDirettivoResponseDTO {
 
-    private PersonaResponseDTO persona;
+    private Long personaId;
 
-    private DirettivoResponseDTO direttivo;
+    private Long direttivoId;
 
     private String ruoloNelDirettivo;
 
     public PersonaDirettivoResponseDTO(PersonaDirettivo personaDirettivo) {
-        this.persona = new PersonaResponseDTO(personaDirettivo.getPersona());
-        this.direttivo = new DirettivoResponseDTO(personaDirettivo.getDirettivo());
+        this.personaId = personaDirettivo.getId().getPersonaId();
+        this.direttivoId = personaDirettivo.getId().getDirettivoId();
         this.ruoloNelDirettivo = personaDirettivo.getRuoloNelDirettivo();
     }
 
