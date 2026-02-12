@@ -1,7 +1,7 @@
 package it.impronta_studentesca_be.service;
 
 import it.impronta_studentesca_be.constant.Roles;
-import it.impronta_studentesca_be.dto.StaffCardDTO;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.Ruolo;
 
@@ -19,6 +19,8 @@ public interface PersonaService {
     void checkExistById(Long id);
 
     Persona getById(Long id);
+
+    PersonaMiniDTO getPersonaLiteById(Long id);
 
     Persona getByEmail(String email);
 

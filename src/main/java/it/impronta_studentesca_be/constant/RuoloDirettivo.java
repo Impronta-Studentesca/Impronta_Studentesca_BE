@@ -19,7 +19,7 @@ public enum RuoloDirettivo {
 
     SOCIO_CONSIGLIERE("Socio Consigliere", 11),
 
-    PRESIDENTE_Dipartimentale("Presidente dipartimentale", 1);
+    PRESIDENTE_Dipartimentale("Presidente dipartimentale", 12);
 
 
     private final String label;

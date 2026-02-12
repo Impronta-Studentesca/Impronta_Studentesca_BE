@@ -16,5 +16,9 @@ public interface DipartimentoService {
 
     Dipartimento getById(Long id);
 
+    Dipartimento getByCorsoId(Long corsoId);
+
+    Dipartimento getDipartimentoByPersonaId(Long personaId);
+
     List<Dipartimento> getAll();
 }

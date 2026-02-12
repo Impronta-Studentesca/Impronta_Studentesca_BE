@@ -1,5 +1,8 @@
 package it.impronta_studentesca_be.service;
 
+import it.impronta_studentesca_be.constant.Roles;
+import it.impronta_studentesca_be.dto.record.PersonaDirettivoMiniDTO;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.Direttivo;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaDirettivo;
@@ -16,9 +19,11 @@ public interface PersonaDirettivoService {
 
     void removePersonaFromDirettivo(Long personaId, Long direttivoId);
 
-    List<PersonaDirettivo> getByDirettivo(Long direttivoId);
+    List<PersonaDirettivoMiniDTO>  getMiniByDirettivo(Long direttivoId);
 
     List<PersonaDirettivo> getDirettivoGeneraleAttivoByPersona(Long personaId);
 
     List<String> getRuoliDirettivoGeneraleAttivi(Long personaId);
+
+    List<PersonaMiniDTO> getPersonaByRuoloNotInDirettivo(Roles ruolo, Long direttivoId);
 }

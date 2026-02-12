@@ -1,6 +1,7 @@
 package it.impronta_studentesca_be.dto;
 
 import it.impronta_studentesca_be.constant.Roles;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.Ruolo;
 import lombok.AllArgsConstructor;
@@ -35,14 +36,22 @@ public class PersonaResponseDTO {
         this.id = persona.getId();
         this.nome = persona.getNome();
         this.cognome = persona.getCognome();
-        this.ruoli = persona.getRuoli().stream()
+        this.ruoli = persona.getRuoli() != null
+                ? persona.getRuoli().stream()
                 .map(Ruolo::getNome)
                 .map(Roles::name)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toSet())
+        : null;
         this.corsoDiStudi = persona.getCorsoDiStudi() != null ?  new CorsoDiStudiResponseDTO(persona.getCorsoDiStudi()) : null;
         this.annoCorso = persona.getAnnoCorso();
         this.ufficio = persona.getUfficio() != null ? new UfficioResponseDTO(persona.getUfficio()) : new UfficioResponseDTO();
 
+    }
+
+    public PersonaResponseDTO(Long id, String nome, String cognome) {
+        this.id = id;
+        this.nome = nome;
+        this.cognome = cognome;
     }
 
 }

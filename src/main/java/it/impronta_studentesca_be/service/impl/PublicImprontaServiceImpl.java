@@ -3,6 +3,7 @@ package it.impronta_studentesca_be.service.impl;
 import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
+import it.impronta_studentesca_be.dto.record.CorsoMiniDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
 import it.impronta_studentesca_be.entity.Ruolo;
@@ -93,8 +94,8 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
      */
     @Override
     public DipartimentoResponseDTO getDipartimentoByCorsoId(Long corsoId) {
-        corsoDiStudiService.checkExistById(corsoId);
-        return getCorsoById(corsoId).getDipartimento();
+
+        return new DipartimentoResponseDTO(dipartimentoService.getByCorsoId(corsoId));
 
     }
 
@@ -103,8 +104,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
      */
     @Override
     public DipartimentoResponseDTO getDipartimentoByPersonaId(Long personaId) {
-        personaService.checkExistById(personaId);
-        return getCorsoByPersonaId(personaId).getDipartimento();
+        return new DipartimentoResponseDTO(dipartimentoService.getDipartimentoByPersonaId(personaId));
     }
 
 
@@ -120,9 +120,8 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     TESTATO 03/12/2025 FUNZIONA
      */
     @Override
-    public List<CorsoDiStudiResponseDTO> getCorsiByDipartimento(Long dipartimentoId) {
-        dipartimentoService.checkExistById(dipartimentoId);
-        return corsoDiStudiService.getByDipartimento(dipartimentoId).stream().map(CorsoDiStudiResponseDTO::new).collect(Collectors.toList());
+    public List<CorsoMiniDTO> getCorsiByDipartimento(Long dipartimentoId) {
+        return corsoDiStudiService.getMiniByDipartimento(dipartimentoId);
     }
 
     /*
@@ -138,8 +137,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
      */
     @Override
     public CorsoDiStudiResponseDTO getCorsoByPersonaId(Long personaId) {
-        personaService.checkExistById(personaId);
-        return new CorsoDiStudiResponseDTO(personaService.getById(personaId).getCorsoDiStudi());
+        return corsoDiStudiService.getCorsoByPersonaId(personaId);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -354,7 +352,13 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     @Override
     public List<PersonaDirettivoResponseDTO> getMembriDirettivo(Long direttivoId) {
         direttivoService.checkExistById(direttivoId);
-        return personaDirettivoService.getByDirettivo(direttivoId).stream().map(PersonaDirettivoResponseDTO::new).collect(Collectors.toList());
+
+       // return personaDirettivoService.getByDirettivo(direttivoId).stream().map(PersonaDirettivoResponseDTO::new).collect(Collectors.toList());
+        return personaDirettivoService.getMiniByDirettivo(direttivoId)
+                .stream()
+                .map(PersonaDirettivoResponseDTO::new)
+                .collect(Collectors.toList());
+
     }
 
     ////////////////////////////////////////////////////////////////////////////

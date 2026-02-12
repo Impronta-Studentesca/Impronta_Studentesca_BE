@@ -2,11 +2,14 @@ package it.impronta_studentesca_be.util;
 
 import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.constant.RuoloDirettivo;
-import it.impronta_studentesca_be.dto.CorsoDiStudiRequestDTO;
-import it.impronta_studentesca_be.dto.DipartimentoRequestDTO;
-import it.impronta_studentesca_be.dto.PersonaRequestDTO;
-import it.impronta_studentesca_be.dto.UfficioRequestDTO;
+import it.impronta_studentesca_be.dto.*;
+import it.impronta_studentesca_be.dto.record.PersonaDirettivoMiniDTO;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.*;
+import it.impronta_studentesca_be.repository.CorsoDiStudiRepository;
+import it.impronta_studentesca_be.repository.DipartimentoRepository;
+import it.impronta_studentesca_be.repository.PersonaRepository;
+import it.impronta_studentesca_be.repository.UfficioRepository;
 import it.impronta_studentesca_be.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,19 +21,20 @@ import java.util.stream.Collectors;
 public class Mapper {
 
     @Autowired
-    private PersonaService personaService;
+    private PersonaRepository personaRepository;
 
     @Autowired
-    private DipartimentoService dipartimentoService;
+    private DipartimentoRepository dipartimentoRepository;
 
     @Autowired
-    private CorsoDiStudiService corsoDiStudiService;
+    private CorsoDiStudiRepository corsoDiStudiRepository;
 
     @Autowired
-    private UfficioService ufficioService;
+    private UfficioRepository ufficioRepository;
 
     @Autowired
     private RuoloService ruoloService;
+
 
     public Persona toPersona(PersonaRequestDTO dto) {
 
@@ -43,23 +47,23 @@ public class Mapper {
             // Carico il corso di studi (obbligatorio)
 
             CorsoDiStudi corsoDiStudi = null;
-            if (dto.getCorsoDiStudiId() != null){
-                corsoDiStudi = corsoDiStudiService.getById(dto.getCorsoDiStudiId());
+            if (dto.getCorsoDiStudiId() != null) {
+                corsoDiStudi = corsoDiStudiRepository.getReferenceById(dto.getCorsoDiStudiId());
             }
 
             // Carico l'ufficio se presente
             Ufficio ufficio = null;
             if (dto.getUfficioId() != null) {
-                ufficio = ufficioService.getById(dto.getUfficioId());
+                ufficio = ufficioRepository.getReferenceById(dto.getUfficioId());
             }
 
 
             Set<Ruolo> ruoliUser = null;
-            if(dto.getRuoli() == null || dto.getRuoli().isEmpty()){
+            if (dto.getRuoli() == null || dto.getRuoli().isEmpty()) {
                 //assegno di default USER
                 ruoliUser = Set.of(ruoloService.getByNome(Roles.USER));
-            }else {
-                ruoliUser =  dto.getRuoli().stream().map(ruolo -> ruoloService.getByNome(ruolo)).collect(Collectors.toSet());
+            } else {
+                ruoliUser = dto.getRuoli().stream().map(ruolo -> ruoloService.getByNome(ruolo)).collect(Collectors.toSet());
 
             }
             return Persona.builder()
@@ -75,14 +79,18 @@ public class Mapper {
         }
     }
 
+    public Persona toPersona(PersonaMiniDTO dto) {
+        return Persona.builder()
+                .id(dto.id())                 // di solito null in create
+                .nome(dto.nome())
+                .cognome(dto.cognome())
+                .build();
+    }
+
     public Dipartimento toDipartimento(DipartimentoRequestDTO dto) {
+
         if (dto == null) {
             return null;
-        }
-        if (dto == null) {
-            return null;
-        } else if (dto.getId() != null && (dto.getCodice() == null || dto.getCodice().isEmpty() || dto.getNome() == null || dto.getNome().isEmpty())) {
-            return dipartimentoService.getById(dto.getId());
         } else {
 
             return Dipartimento.builder()
@@ -96,15 +104,13 @@ public class Mapper {
     public CorsoDiStudi toCorsoDiSudi(CorsoDiStudiRequestDTO dto) {
         if (dto == null) {
             return null;
-//        } else if (dto.getId() != null) {
-//            return corsoDiStudiService.getById(dto.getId());
         } else {
 
             return CorsoDiStudi.builder()
                     .id(dto.getId())                               // null in create
                     .nome(dto.getNome())
                     .tipoCorso(dto.getTipoCorso())
-                    .dipartimento(dipartimentoService.getById(dto.getDipartimentoId()))
+                    .dipartimento(dipartimentoRepository.getReferenceById(dto.getDipartimentoId()))
                     .build();
         }
     }
@@ -112,46 +118,46 @@ public class Mapper {
     public Ufficio toUfficio(UfficioRequestDTO dto) {
         if (dto == null) {
             return null;
-        } else if (dto.getId() != null) {
-            return ufficioService.getById(dto.getId());
-        } else{
+        } else {
 
-        Persona responsabile = null;
-        if (dto.getResponsabileId() != null) {
-            responsabile = personaService.getById(dto.getResponsabileId());
+            Persona responsabile = null;
+            if (dto.getResponsabileId() != null) {
+                responsabile = personaRepository.getReferenceById(dto.getResponsabileId());
+            }
+
+            return Ufficio.builder()
+                    .id(dto.getId())          // null in create, valorizzato in update
+                    .nome(dto.getNome())
+                    .responsabile(responsabile)
+                    .build();
         }
-
-        return Ufficio.builder()
-                .id(dto.getId())          // null in create, valorizzato in update
-                .nome(dto.getNome())
-                .responsabile(responsabile)
-                .build();
-    }
     }
 
-    public Set<RuoloDirettivo> getRuoliDirettivo(Set<Ruolo> ruoli) {
-        if (ruoli == null || ruoli.isEmpty()) return Collections.emptySet();
 
-        return ruoli.stream()
-                .map(Ruolo::getNome)
-                .map(Object::toString)
-                .map(Mapper::normalize)
-                .map(Mapper::toRuoloDirettivoOrNull)
-                .filter(Objects::nonNull)
-                .sorted(Comparator.comparingInt(RuoloDirettivo::getOrdine))
-                .collect(Collectors.toCollection(LinkedHashSet::new)); // mantiene ordine
-    }
-
-    private static String normalize(String raw) {
-        if (raw == null) return "";
-        return raw.trim().toUpperCase().replace(' ', '_');
-    }
-
-    private static RuoloDirettivo toRuoloDirettivoOrNull(String key) {
-        try {
-            return RuoloDirettivo.valueOf(key);
-        } catch (IllegalArgumentException ex) {
+    public Direttivo toDirettivo(DirettivoRequestDTO dto) {
+        if (dto == null) {
             return null;
+
+        } else {
+
+            Dipartimento dipartimento = null;
+            if (dto.getDipartimentoId() != null) {
+                dipartimento = dipartimentoRepository.getReferenceById(dto.getDipartimentoId());
+            }
+
+
+            return Direttivo.builder()
+                    .id(dto.getId())
+                    .tipo(dto.getTipo())
+                    .dipartimento(dipartimento)
+                    .inizioMandato(dto.getInizioMandato())
+                    .fineMandato(dto.getFineMandato() != null ? dto.getFineMandato() : null)
+                    .build();
         }
     }
+
+
 }
+
+
+

@@ -1,6 +1,5 @@
 package it.impronta_studentesca_be.service.impl;
 
-import it.impronta_studentesca_be.dto.DipartimentoResponseDTO;
 import it.impronta_studentesca_be.entity.Dipartimento;
 import it.impronta_studentesca_be.exception.*;
 import it.impronta_studentesca_be.repository.DipartimentoRepository;
@@ -10,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -112,6 +110,21 @@ public class DipartimentoServiceImpl implements DipartimentoService {
                     );
                 });
     }
+
+    @Override
+    public Dipartimento getByCorsoId(Long corsoId) {
+        Dipartimento dipartimento = dipartimentoRepository.findByCorsoDiStudiId(corsoId)
+                .orElseThrow(() -> new EntityNotFoundException("CorsoDiStudi", "id", corsoId));
+        return dipartimento;
+    }
+
+    @Override
+    public Dipartimento getDipartimentoByPersonaId(Long personaId) {
+        Dipartimento dipartimento = dipartimentoRepository.findByPersonaId(personaId)
+                .orElseThrow(() -> new EntityNotFoundException("Persona", "id", personaId));
+        return dipartimento;
+    }
+
 
 
     /*

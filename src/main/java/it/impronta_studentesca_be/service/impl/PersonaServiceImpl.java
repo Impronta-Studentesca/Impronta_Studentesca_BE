@@ -1,6 +1,7 @@
 package it.impronta_studentesca_be.service.impl;
 
 import it.impronta_studentesca_be.constant.Roles;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.Ruolo;
 import it.impronta_studentesca_be.exception.*;
@@ -10,8 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -160,6 +159,20 @@ public class PersonaServiceImpl implements PersonaService {
     public Persona getById(Long id) {
         log.info("RECUPERO PERSONA CON ID: {}", id);
         return personaRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.error("PERSONA NON TROVATA CON ID: {}", id);
+                    return new EntityNotFoundException(
+                            Persona.class.getSimpleName(),
+                            "id",
+                            id
+                    );
+                });
+    }
+
+    @Override
+    public PersonaMiniDTO getPersonaLiteById(Long id) {
+        log.info("RECUPERO PERSONA CON ID: {}", id);
+        return personaRepository.findMiniById(id)
                 .orElseThrow(() -> {
                     log.error("PERSONA NON TROVATA CON ID: {}", id);
                     return new EntityNotFoundException(

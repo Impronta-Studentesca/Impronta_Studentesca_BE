@@ -3,6 +3,7 @@ package it.impronta_studentesca_be.service.impl;
 import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaDirettivo;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
@@ -173,7 +174,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
 
         if(personaDirettivo != null  && personaDirettivo.getDirettivo() != null  && personaDirettivo.getDirettivo().getTipo() == TipoDirettivo.GENERALE) {
             personaService.aggiungiRuolo(personaId, Roles.DIRETTIVO);
-        } else if(personaDirettivo != null  && personaDirettivo.getDirettivo() != null  && personaDirettivo.getDirettivo().getTipo() == TipoDirettivo.DIPARTIMENTALE) {
+        } else {
             personaService.aggiungiRuolo(personaId, Roles.DIRETTIVO_DIPARTIMENTALE);
         }
 
@@ -208,6 +209,12 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             personaService.rimuoviRuolo(personaId, Roles.DIRETTIVO_DIPARTIMENTALE);
         }
 
+    }
+
+    @Override
+    public List<PersonaMiniDTO> getPersoneByRuoloNonPresentiNelDirettivoId(Roles ruolo, Long direttivoId) {
+        direttivoService.checkExistById(direttivoId);
+        return personaDirettivoService.getPersonaByRuoloNotInDirettivo(ruolo, direttivoId);
     }
 
     @Override
@@ -344,5 +351,23 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             log.error("ERRORE IMPOSSIBILE RECUPERARE LO STAFF", ex);
             throw new GetAllException("Errore durante il recupero dello staff");
         }
+    }
+
+
+    @Override
+    public DirettivoResponseDTO creaDirettivo(DirettivoRequestDTO direttivo) {
+
+        return new DirettivoResponseDTO(direttivoService.create(mapper.toDirettivo(direttivo)));
+
+    }
+
+    @Override
+    public DirettivoResponseDTO aggiornaDirettivo(DirettivoRequestDTO direttivo) {
+        return new DirettivoResponseDTO(direttivoService.update(mapper.toDirettivo(direttivo)));
+    }
+
+    @Override
+    public void eliminaDirettivo(Long direttivoId) {
+        direttivoService.delete(direttivoId);
     }
 }

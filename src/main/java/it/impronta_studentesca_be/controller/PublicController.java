@@ -4,6 +4,7 @@ package it.impronta_studentesca_be.controller;
 import it.impronta_studentesca_be.constant.ApiPath;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
+import it.impronta_studentesca_be.dto.record.CorsoMiniDTO;
 import it.impronta_studentesca_be.service.PublicImprontaService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,7 +53,7 @@ public class PublicController {
     // CORSI DI STUDIO
 
     @GetMapping("/" + ApiPath.DIPARTIMENTO_PATH + "/{dipartimentoId}/" + ApiPath.CORSI_PATH)
-    public ResponseEntity<List<CorsoDiStudiResponseDTO>> getCorsiByDipartimento(
+    public ResponseEntity<List<CorsoMiniDTO>> getCorsiByDipartimento(
             @PathVariable Long dipartimentoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getCorsiByDipartimento(dipartimentoId));
@@ -84,10 +85,10 @@ public class PublicController {
     // PERSONE / STAFF
 
 
-    @GetMapping("/persona/{personaId}/foto")
-    public ResponseEntity<PersonaPhotoResponseDTO> getFotoPersona(@PathVariable Long personaId) {
-        return ResponseEntity.ok(publicImprontaService.getFotoPersona(personaId));
-    }
+//    @GetMapping("/persona/{personaId}/foto")
+//    public ResponseEntity<PersonaPhotoResponseDTO> getFotoPersona(@PathVariable Long personaId) {
+//        return ResponseEntity.ok(publicImprontaService.getFotoPersona(personaId));
+//    }
 
     @GetMapping("/" + ApiPath.PERSONA_PATH + "/{personaId}")
     public ResponseEntity<PersonaResponseDTO> getPersonaById(
@@ -96,11 +97,7 @@ public class PublicController {
         return ResponseEntity.ok(publicImprontaService.getPersonaById(personaId));
     }
 
-    @GetMapping("/" + ApiPath.STAFF_PATH + "/" + ApiPath.ALL_PATH)
-    public ResponseEntity<List<PersonaResponseDTO>> getStaff() {
-        return ResponseEntity.ok(publicImprontaService.getStaff());
-    }
-
+    //TODO:OTTIMIZZARE DA QUI IN POI
     @GetMapping("/" + ApiPath.DIPARTIMENTO_PATH + "/{dipartimentoId}/" +  ApiPath.PERSONE_PATH)
     public ResponseEntity<List<PersonaResponseDTO>> getPersoneByDipartimento(
             @PathVariable Long dipartimentoId

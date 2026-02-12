@@ -2,7 +2,9 @@ package it.impronta_studentesca_be.controller;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import it.impronta_studentesca_be.constant.ApiPath;
+import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.dto.*;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.service.AdminImprontaService;
 import it.impronta_studentesca_be.service.PublicImprontaService;
 import lombok.extern.slf4j.Slf4j;
@@ -41,22 +43,50 @@ public class AdminController {
     }
 
     @PostMapping("/" + ApiPath.DIRETTIVO_PATH)
+    public ResponseEntity<Void> aggiungiADirettivo(@RequestBody DirettivoRequestDTO direttivoRequestDTO) {
+        adminImprontaService.creaDirettivo(direttivoRequestDTO);
+    return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/" + ApiPath.DIRETTIVO_PATH)
+    public ResponseEntity<Void> modificaADirettivo(@RequestBody DirettivoRequestDTO direttivoRequestDTO) {
+        adminImprontaService.aggiornaDirettivo(direttivoRequestDTO);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/" + ApiPath.DIRETTIVO_PATH + "/{direttivoId}")
+    public ResponseEntity<Void> eliminaADirettivo(@PathVariable Long direttivoId) {
+        adminImprontaService.eliminaDirettivo(direttivoId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/" + ApiPath.DIRETTIVO_PATH + '/' + ApiPath.PERSONA_PATH)
     public ResponseEntity<Void> assegnaPersonaADirettivo(@RequestBody PersonaDirettivoRequestDTO personaDirettivoRequestDTO) {
         adminImprontaService.assegnaPersonaADirettivo(personaDirettivoRequestDTO.getPersonaId(), personaDirettivoRequestDTO.getDirettivoId(), personaDirettivoRequestDTO.getRuoloNelDirettivo());
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/" + ApiPath.DIRETTIVO_PATH)
+    @PutMapping("/" + ApiPath.DIRETTIVO_PATH + '/' + ApiPath.PERSONA_PATH)
     public ResponseEntity<Void> modificaPersonaADirettivo(@RequestBody PersonaDirettivoRequestDTO personaDirettivoRequestDTO) {
         adminImprontaService.modificaPersonaADirettivo(personaDirettivoRequestDTO.getPersonaId(), personaDirettivoRequestDTO.getDirettivoId(), personaDirettivoRequestDTO.getRuoloNelDirettivo());
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/" + ApiPath.DIRETTIVO_PATH + "/{personaId}/{direttivoId}")
+    @DeleteMapping("/" + ApiPath.DIRETTIVO_PATH + '/' + ApiPath.PERSONA_PATH+ "/{personaId}/{direttivoId}")
     public ResponseEntity<Void> rimuoviPersonaDaDirettivo(@PathVariable Long personaId,
                                                           @PathVariable Long direttivoId) {
         adminImprontaService.rimuoviPersonaDaDirettivo(personaId, direttivoId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/" + ApiPath.DIRETTIVO_PATH + "/ruolo/{ruolo}/non-presenti-direttivo/{direttivoId}")
+    public ResponseEntity<List<PersonaMiniDTO>> getPersoneByRuoloNonPresentiNelDirettivo(
+            @PathVariable Roles ruolo,
+            @PathVariable Long direttivoId
+    ) {
+        return ResponseEntity.ok(
+                adminImprontaService.getPersoneByRuoloNonPresentiNelDirettivoId(ruolo, direttivoId)
+        );
     }
 
     // ORGANI DI RAPPRESENTANZA

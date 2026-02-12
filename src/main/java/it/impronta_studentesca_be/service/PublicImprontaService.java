@@ -2,6 +2,7 @@ package it.impronta_studentesca_be.service;
 
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
+import it.impronta_studentesca_be.dto.record.CorsoMiniDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -16,7 +17,7 @@ public interface PublicImprontaService {
     DipartimentoResponseDTO getDipartimentoByPersonaId(Long personaId);
 
     //Corsi
-    List<CorsoDiStudiResponseDTO> getCorsiByDipartimento(Long dipartimentoId);
+    List<CorsoMiniDTO> getCorsiByDipartimento(Long dipartimentoId);
     CorsoDiStudiResponseDTO getCorsoById(Long corsoId);
     CorsoDiStudiResponseDTO getCorsoByPersonaId(Long personaId);
 

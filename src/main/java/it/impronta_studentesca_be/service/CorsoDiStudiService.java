@@ -1,5 +1,7 @@
 package it.impronta_studentesca_be.service;
 
+import it.impronta_studentesca_be.dto.CorsoDiStudiResponseDTO;
+import it.impronta_studentesca_be.dto.record.CorsoMiniDTO;
 import it.impronta_studentesca_be.entity.CorsoDiStudi;
 
 import java.util.List;
@@ -18,5 +20,7 @@ public interface CorsoDiStudiService {
 
     List<CorsoDiStudi> getAll();
 
-    List<CorsoDiStudi> getByDipartimento(Long dipartimentoId);
+    List<CorsoMiniDTO> getMiniByDipartimento(Long dipartimentoId);
+
+    CorsoDiStudiResponseDTO getCorsoByPersonaId(Long personaId);
 }

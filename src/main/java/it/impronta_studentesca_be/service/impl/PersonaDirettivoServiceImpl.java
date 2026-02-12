@@ -1,6 +1,9 @@
 package it.impronta_studentesca_be.service.impl;
 
+import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
+import it.impronta_studentesca_be.dto.record.PersonaDirettivoMiniDTO;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.*;
 import it.impronta_studentesca_be.exception.CreateException;
 import it.impronta_studentesca_be.exception.DeleteException;
@@ -122,13 +125,13 @@ public class PersonaDirettivoServiceImpl implements PersonaDirettivoService {
     TESTATO 06/12/2025 FUNZIONA
      */
     @Override
-    public List<PersonaDirettivo> getByDirettivo(Long direttivoId) {
+    public List<PersonaDirettivoMiniDTO>  getMiniByDirettivo(Long direttivoId) {
         log.info("RECUPERO DIRETTIVI PER DIRETTIVO_ID={}", direttivoId);
 
         try {
 
             // 2) Recupero personeDelDirettivo
-            List<PersonaDirettivo> personeDelDirettivo = personaDirettivoRepository.findByDirettivo_Id(direttivoId);
+            List<PersonaDirettivoMiniDTO> personeDelDirettivo = personaDirettivoRepository.findMiniByDirettivoId(direttivoId);
 
             if (personeDelDirettivo.isEmpty()) {
                 log.info("NESSUNA PERSONA TROVATA PER DIRETTIVO_ID={}", direttivoId);
@@ -235,6 +238,21 @@ public class PersonaDirettivoServiceImpl implements PersonaDirettivoService {
             log.error("ERRORE RECUPERO RUOLI DIRETTIVO GENERALE ATTIVI PER PERSONA_ID={}", personaId, ex);
             throw new GetAllException("ERRORE DURANTE IL RECUPERO DEI RUOLI DIRETTIVO GENERALE ATTIVI");
         }
+    }
+
+    @Override
+    public List<PersonaMiniDTO> getPersonaByRuoloNotInDirettivo(Roles ruolo, Long direttivoId) {
+        log.info("RECUPERO PERSONE CON RUOLO: {} NON PRESENTI NEL DIRETTIVO: {}", ruolo.name(), direttivoId);
+
+        try{
+            List<PersonaMiniDTO> persone = personaRepository.findMiniByRuoloNotInDirettivo(ruolo, direttivoId);
+            log.info("PERSONE TROVATE: {}", persone.size());
+            return persone;
+        }catch(Exception ex){
+            log.error("IMPOSSIBILE RECUPERARE PERSONE CON RUOLO: {} NON PRESENTI NEL DIRETTIVO: {}", ruolo.name(), direttivoId);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLE PERSONE");
+        }
+
     }
 
 }

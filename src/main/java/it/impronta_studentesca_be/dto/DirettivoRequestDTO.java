@@ -17,10 +17,6 @@ public class DirettivoRequestDTO {
      */
     private Long dipartimentoId;
 
-    /**
-     * Anno accademico di riferimento, es. "2024/2025"
-     */
-    private String annoAccademico;
 
     /**
      * Inizio mandato (puoi farlo opzionale lato FE e valorizzare nel service con LocalDate.now()
