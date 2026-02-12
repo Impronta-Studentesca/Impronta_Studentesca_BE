@@ -1,7 +1,10 @@
 package it.impronta_studentesca_be.repository;
 
+import it.impronta_studentesca_be.dto.record.PersonaLabelRow;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -25,4 +28,17 @@ public interface PersonaRappresentanzaRepository extends JpaRepository<PersonaRa
     List<PersonaRappresentanza> findByPersona_IdAndDataInizioLessThanEqualAndDataFineGreaterThanEqual(
             Long personaId, LocalDate oggi1, LocalDate oggi2
     );
+
+    @Query("""
+  select new it.impronta_studentesca_be.dto.record.PersonaLabelRow(pr.persona.id, o.nome)
+  from PersonaRappresentanza pr
+  join pr.organoRappresentanza o
+  where pr.persona.id in :personaIds
+    and pr.dataInizio is not null
+    and pr.dataInizio <= :today
+    and (pr.dataFine is null or pr.dataFine >= :today)
+""")
+    List<PersonaLabelRow> findRappresentanzeAttiveLabelsByPersonaIds(@Param("personaIds") List<Long> personaIds,
+                                               @Param("today") LocalDate today);
+
 }

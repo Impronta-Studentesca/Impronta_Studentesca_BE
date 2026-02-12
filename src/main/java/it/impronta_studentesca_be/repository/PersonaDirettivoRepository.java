@@ -2,6 +2,7 @@ package it.impronta_studentesca_be.repository;
 
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.record.PersonaDirettivoMiniDTO;
+import it.impronta_studentesca_be.dto.record.PersonaDirettivoRow;
 import it.impronta_studentesca_be.entity.PersonaDirettivo;
 import it.impronta_studentesca_be.entity.PersonaDirettivoId;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -63,15 +64,20 @@ public interface PersonaDirettivoRepository extends JpaRepository<PersonaDiretti
             LocalDate today2
     );
 
-    // (Opzionale) se ti serve per TUTTI, non solo per una persona:
-    List<PersonaDirettivo> findByDirettivo_TipoAndDirettivo_DipartimentoIsNullAndDirettivo_InizioMandatoLessThanEqualAndDirettivo_FineMandatoIsNull(
-            TipoDirettivo tipo,
-            LocalDate today
-    );
+    @Query("""
+  select new it.impronta_studentesca_be.dto.record.PersonaDirettivoRow(pd.persona.id, pd.ruoloNelDirettivo)
+  from PersonaDirettivo pd
+  join pd.direttivo d
+  where pd.persona.id in :personaIds
+    and d.tipo = :tipo
+    and d.dipartimento is null
+    and d.inizioMandato <= :today
+    and (d.fineMandato is null or d.fineMandato > :today)
+    and pd.ruoloNelDirettivo is not null
+    and trim(pd.ruoloNelDirettivo) <> ''
+""")
+    List<PersonaDirettivoRow> findRuoliDirettivoGeneraleAttiviByPersonaIds(@Param("personaIds") List<Long> personaIds,
+                                                 @Param("tipo") TipoDirettivo tipo,
+                                                 @Param("today") LocalDate today);
 
-    List<PersonaDirettivo> findByDirettivo_TipoAndDirettivo_DipartimentoIsNullAndDirettivo_InizioMandatoLessThanEqualAndDirettivo_FineMandatoAfter(
-            TipoDirettivo tipo,
-            LocalDate today1,
-            LocalDate today2
-    );
 }

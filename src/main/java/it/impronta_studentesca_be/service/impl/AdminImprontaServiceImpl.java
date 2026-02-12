@@ -3,11 +3,14 @@ package it.impronta_studentesca_be.service.impl;
 import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
-import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
+import it.impronta_studentesca_be.dto.record.*;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaDirettivo;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
 import it.impronta_studentesca_be.exception.GetAllException;
+import it.impronta_studentesca_be.repository.PersonaDirettivoRepository;
+import it.impronta_studentesca_be.repository.PersonaRappresentanzaRepository;
+import it.impronta_studentesca_be.repository.PersonaRepository;
 import it.impronta_studentesca_be.service.*;
 import it.impronta_studentesca_be.util.Mapper;
 import lombok.extern.slf4j.Slf4j;
@@ -16,9 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,10 +30,19 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
     private PersonaService personaService;
 
     @Autowired
+    private PersonaRepository personaRepository;
+
+    @Autowired
     private PersonaDirettivoService personaDirettivoService;
 
     @Autowired
+    private PersonaDirettivoRepository personaDirettivoRepository;
+
+    @Autowired
     private PersonaRappresentanzaService personaRappresentanzaService;
+
+    @Autowired
+    PersonaRappresentanzaRepository personaRappresentanzaRepository;
 
     @Autowired
     private OrganoRappresentanzaService organoRappresentanzaService;
@@ -289,69 +299,133 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
 
     @Override
     public List<StaffCardDTO> getStaffCards() {
-        log.info("INIZIO RECUPERO DI TUTTO LO STAFF");
+        log.info("INIZIO RECUPERO DI TUTTO LO STAFF (BULK)");
 
         try {
-            List<Persona> staff = personaService.getStaff();
+            LocalDate today = LocalDate.now();
 
-            if (staff == null || staff.isEmpty()) {
+            // 1) STAFF BASE (1 QUERY)
+            List<StaffBaseDTO> staffBase = personaRepository.findStaffBase(Roles.STAFF);
+
+            if (staffBase == null || staffBase.isEmpty()) {
                 log.info("STAFF NON TROVATO");
-                return Collections.emptyList();
+                return List.of();
             }
 
-            log.info("SONO STATI TROVATI {} MEBRI DI STAFF", staff.size());
+            log.info("SONO STATI TROVATI {} MEMBRI DI STAFF", staffBase.size());
 
-            List<StaffCardDTO> result = staff.stream().map(p -> {
-                Long personaId = p.getId();
-                log.debug("getStaffCards - mapping personaId={} {} {}", personaId, p.getNome(), p.getCognome());
+            // ID LIST
+            List<Long> ids = new ArrayList<>(staffBase.size());
+            for (StaffBaseDTO s : staffBase) {
+                ids.add(s.id());
+            }
 
-                // rappresentanze attive
-                List<PersonaRappresentanza> reps;
-                try {
-                    reps = personaRappresentanzaService.getAttiveByPersona(personaId);
-                } catch (Exception ex) {
-                    // Non blocco tutta la lista se una persona ha un problema sulle rappresentanze
-                    log.error("ERRORE RECUPERO RAPPRESENTANZA PER PERSONA_ID={}", personaId, ex);
-                    reps = Collections.emptyList();
+            // 2) RUOLI (1 QUERY)
+            Map<Long, Set<String>> ruoliByPersona = new HashMap<>(ids.size() * 2);
+            try {
+                List<PersonaRuoloRow> righeRuoli = personaRepository.findRuoliRowsByPersonaIds(ids);
+                for (PersonaRuoloRow row : righeRuoli) {
+                    if (row == null || row.personaId() == null || row.ruolo() == null) continue;
+
+                    ruoliByPersona
+                            .computeIfAbsent(row.personaId(), k -> new HashSet<>())
+                            .add(row.ruolo().name());
+                }
+                log.info("RUOLI RECUPERATI PER {} PERSONE", ruoliByPersona.size());
+            } catch (Exception ex) {
+                log.error("ERRORE RECUPERO RUOLI STAFF (BULK)", ex);
+                ruoliByPersona = Collections.emptyMap();
+            }
+
+            // 3) RAPPRESENTANZE ATTIVE (1 QUERY)
+            Map<Long, Set<String>> repsByPersona = new HashMap<>(ids.size() * 2);
+            try {
+                List<PersonaLabelRow> reps = personaRappresentanzaRepository
+                        .findRappresentanzeAttiveLabelsByPersonaIds(ids, today);
+
+                for (PersonaLabelRow row : reps) {
+                    if (row == null || row.personaId() == null) continue;
+
+                    String label = row.label();
+                    if (label == null || label.isBlank()) continue;
+
+                    repsByPersona
+                            .computeIfAbsent(row.personaId(), k -> new HashSet<>())
+                            .add(label);
                 }
 
-                Set<String> repLabels = reps.stream()
-                        .map(pr -> pr.getOrganoRappresentanza() != null ? pr.getOrganoRappresentanza().getNome() : null)
-                        .filter(n -> n != null && !n.isBlank())
-                        .collect(Collectors.toSet());
+                log.info("RAPPRESENTANZE ATTIVE RECUPERATE PER {} PERSONE", repsByPersona.size());
+            } catch (Exception ex) {
+                log.error("ERRORE RECUPERO RAPPRESENTANZE ATTIVE (BULK)", ex);
+                repsByPersona = Collections.emptyMap();
+            }
 
-                // ruoli direttivo (null-safe)
-                List<String> direttivo = personaDirettivoService.getRuoliDirettivoGeneraleAttivi(personaId);
+            // 4) RUOLI DIRETTIVO GENERALE ATTIVI (1 QUERY) - DEDUP+ORDINE IN INSERIMENTO
+            Map<Long, LinkedHashSet<String>> direttivoByPersona = new HashMap<>(ids.size() * 2);
+            try {
+                List<PersonaDirettivoRow> righeDirettivo = personaDirettivoRepository
+                        .findRuoliDirettivoGeneraleAttiviByPersonaIds(ids, TipoDirettivo.GENERALE, today);
 
-                return StaffCardDTO.builder()
+                for (PersonaDirettivoRow row : righeDirettivo) {
+                    if (row == null || row.personaId() == null) continue;
+
+                    String ruolo = row.ruoloNelDirettivo();
+                    if (ruolo == null || ruolo.isBlank()) continue;
+
+                    direttivoByPersona
+                            .computeIfAbsent(row.personaId(), k -> new LinkedHashSet<>())
+                            .add(ruolo);
+                }
+
+                log.info("RUOLI DIRETTIVO GENERALE ATTIVI RECUPERATI PER {} PERSONE", direttivoByPersona.size());
+            } catch (Exception ex) {
+                log.error("ERRORE RECUPERO RUOLI DIRETTIVO GENERALE ATTIVI (BULK)", ex);
+                direttivoByPersona = Collections.emptyMap();
+            }
+
+            // BUILD RESULT
+            List<StaffCardDTO> result = new ArrayList<>(staffBase.size());
+            for (StaffBaseDTO p : staffBase) {
+                Long personaId = p.id();
+
+                Set<String> repLabels = repsByPersona.get(personaId);
+                LinkedHashSet<String> direttivoSet = direttivoByPersona.get(personaId);
+                List<String> direttivo = (direttivoSet == null || direttivoSet.isEmpty()) ? null : new ArrayList<>(direttivoSet);
+
+                Set<String> ruoli = ruoliByPersona.getOrDefault(personaId, Collections.emptySet());
+
+                CorsoDiStudiResponseDTO corsoDto = null;
+                if (p.corsoId() != null) {
+                    // RICHIEDE COSTRUTTORE "FLAT" (ID, NOME, TIPO)
+                    corsoDto = new CorsoDiStudiResponseDTO(p.corsoId(), p.corsoNome(), p.tipoCorso());
+                }
+
+                result.add(StaffCardDTO.builder()
                         .id(personaId)
-                        .nome(p.getNome())
-                        .cognome(p.getCognome())
-                        .email(p.getEmail())
-                        .ruoli(p.getRuoli() == null ? Collections.emptySet() :
-                                p.getRuoli().stream()
-                                        .map(r -> r != null ? r.getNome() : null)
-                                        .filter(n -> n != null)
-                                        .map(Object::toString)
-                                        .collect(Collectors.toSet())
-                        )
-                        .corsoDiStudi(p.getCorsoDiStudi() != null ? new CorsoDiStudiResponseDTO(p.getCorsoDiStudi()) : null)
-                        .annoCorso(p.getAnnoCorso())
-                        .fotoUrl(p.getFotoUrl())
-                        .fotoThumbnailUrl(p.getFotoThumbnailUrl())
-                        .direttivoRuoli(direttivo.isEmpty() ? null : direttivo)
-                        .rappresentanze(repLabels.isEmpty() ? null : repLabels)
-                        .build();
-            }).toList();
+                        .nome(p.nome())
+                        .cognome(p.cognome())
+                        .email(p.email())
+                        .ruoli(ruoli)
+                        .corsoDiStudi(corsoDto)
+                        .annoCorso(p.annoCorso())
+                        .fotoUrl(p.fotoUrl())
+                        .fotoThumbnailUrl(p.fotoThumbnailUrl())
+                        .direttivoRuoli(direttivo)
+                        .rappresentanze(repLabels == null || repLabels.isEmpty() ? null : repLabels)
+                        .build()
+                );
+            }
 
-            log.info("FINE RECUPERO STAFF:  {} MEMBRI", result.size());
+            log.info("FINE RECUPERO STAFF (BULK): {} MEMBRI", result.size());
             return result;
 
         } catch (Exception ex) {
-            log.error("ERRORE IMPOSSIBILE RECUPERARE LO STAFF", ex);
+            log.error("ERRORE IMPOSSIBILE RECUPERARE LO STAFF (BULK)", ex);
             throw new GetAllException("Errore durante il recupero dello staff");
         }
     }
+
+
 
 
     @Override

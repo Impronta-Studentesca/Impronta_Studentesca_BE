@@ -30,5 +30,11 @@ public class CorsoDiStudiResponseDTO {
 
         }
     }
+
+    public CorsoDiStudiResponseDTO(Long corsoId, String corsoNome, TipoCorso tipoCorso) {
+        this.id = corsoId;
+        this.nome = corsoNome;
+        this.tipoCorso = tipoCorso;
+    }
 }
 

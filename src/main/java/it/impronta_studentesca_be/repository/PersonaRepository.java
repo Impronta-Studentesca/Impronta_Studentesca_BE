@@ -2,6 +2,7 @@ package it.impronta_studentesca_be.repository;
 
 import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
+import it.impronta_studentesca_be.dto.record.PersonaRuoloRow;
 import it.impronta_studentesca_be.dto.record.StaffBaseDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.Ruolo;
@@ -81,11 +82,11 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
 
     // ROW (personaId, ruoloEnum) per tutti gli staff in una botta
     @Query("""
-        select p.id, r.nome
-        from Persona p
-        join p.ruoli r
-        where p.id in :personaIds
-    """)
-    List<Object[]> findRuoliByPersonaIds(@Param("personaIds") List<Long> personaIds);
+  select new it.impronta_studentesca_be.dto.record.PersonaRuoloRow(p.id, r.nome)
+  from Persona p
+  join p.ruoli r
+  where p.id in :personaIds
+""")
+    List<PersonaRuoloRow> findRuoliRowsByPersonaIds(@Param("personaIds") List<Long> personaIds);
 }
 
