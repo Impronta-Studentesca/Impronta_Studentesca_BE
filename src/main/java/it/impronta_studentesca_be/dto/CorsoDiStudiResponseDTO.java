@@ -1,6 +1,7 @@
 package it.impronta_studentesca_be.dto;
 
 import it.impronta_studentesca_be.constant.TipoCorso;
+import it.impronta_studentesca_be.dto.record.DipartimentoResponseDTO;
 import it.impronta_studentesca_be.entity.CorsoDiStudi;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,14 +20,14 @@ public class CorsoDiStudiResponseDTO {
 
     private TipoCorso tipoCorso;
 
-    private DipartimentoResponseDTO dipartimento;
+    private Long dipartimentoId;
 
     public CorsoDiStudiResponseDTO(CorsoDiStudi corsoDiStudi) {
         this.id = corsoDiStudi.getId();
         this.nome = corsoDiStudi.getNome();
         this.tipoCorso = corsoDiStudi.getTipoCorso();
         if (corsoDiStudi.getDipartimento() != null) {
-            this.dipartimento = new DipartimentoResponseDTO(corsoDiStudi.getDipartimento());
+            this.dipartimentoId = corsoDiStudi.getDipartimento().getId();
 
         }
     }

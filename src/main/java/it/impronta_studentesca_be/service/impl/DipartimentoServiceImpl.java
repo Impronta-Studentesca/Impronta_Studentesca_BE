@@ -1,5 +1,6 @@
 package it.impronta_studentesca_be.service.impl;
 
+import it.impronta_studentesca_be.dto.record.DipartimentoResponseDTO;
 import it.impronta_studentesca_be.entity.Dipartimento;
 import it.impronta_studentesca_be.exception.*;
 import it.impronta_studentesca_be.repository.DipartimentoRepository;
@@ -7,6 +8,7 @@ import it.impronta_studentesca_be.service.DipartimentoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -18,74 +20,142 @@ public class DipartimentoServiceImpl implements DipartimentoService {
     private DipartimentoRepository dipartimentoRepository;
 
     @Override
-    public Dipartimento create(Dipartimento dipartimento) {
-        log.info("CREAZIONE NUOVO DIPARTIMENTO: {}", dipartimento);
+    @Transactional
+    public void create(Dipartimento dipartimento) {
+
+        log.info("INIZIO CREAZIONE DIPARTIMENTO - NOME={} - CODICE={}",
+                dipartimento != null ? dipartimento.getNome() : null,
+                dipartimento != null ? dipartimento.getCodice() : null);
+
         try {
-            Dipartimento saved = dipartimentoRepository.save(dipartimento);
-            log.info("DIPARTIMENTO CREATO CON ID: {}", saved.getId());
-            return saved;
+            if (dipartimento == null) {
+                log.error("ERRORE CREAZIONE DIPARTIMENTO - DIPARTIMENTO NULL");
+                throw new IllegalArgumentException("DIPARTIMENTO NULL");
+            }
+
+            java.lang.String codice = dipartimento.getCodice();
+            if (codice == null || codice.isBlank()) {
+                log.error("ERRORE CREAZIONE DIPARTIMENTO - CODICE MANCANTE");
+                throw new IllegalArgumentException("CODICE DIPARTIMENTO MANCANTE");
+            }
+
+            codice = codice.trim();
+            dipartimento.setCodice(codice);
+
+            if (dipartimentoRepository.existsByCodiceIgnoreCase(codice)) {
+                log.error("ERRORE CREAZIONE DIPARTIMENTO - CODICE GIA' PRESENTE - CODICE={}", codice);
+                throw new CreateException(Dipartimento.class.getSimpleName(), codice);
+            }
+
+            dipartimentoRepository.save(dipartimento);
+
+            log.info("FINE CREAZIONE DIPARTIMENTO - OK - CODICE={}", codice);
+
+        } catch (CreateException e) {
+            throw e;
+
         } catch (Exception e) {
-            log.error("ERRORE NELLA CREAZIONE DEL DIPARTIMENTO: {}, MESSAGGIO DI ERRORE: {}", dipartimento, e.getMessage());
-            throw new CreateException(Dipartimento.class.getSimpleName(), dipartimento.getNome());
+            log.error("ERRORE CREAZIONE DIPARTIMENTO - NOME={} - CODICE={}",
+                    dipartimento != null ? dipartimento.getNome() : null,
+                    dipartimento != null ? dipartimento.getCodice() : null,
+                    e);
+            throw new CreateException(Dipartimento.class.getSimpleName(),
+                    dipartimento != null ? dipartimento.getNome() : "NULL");
         }
     }
 
-    @Override
-    public Dipartimento update(Dipartimento dipartimento) {
-        if (dipartimento.getId() == null) {
-            log.warn("TENTATIVO DI UPDATE DIPARTIMENTO SENZA ID: {}", dipartimento);
-            throw new IllegalArgumentException("ID dipartimento mancante per update");
-        }
 
-        Long id = dipartimento.getId();
-        log.info("AGGIORNAMENTO DIPARTIMENTO CON ID: {}", id);
+
+
+    @Override
+    @Transactional
+    public void update(Dipartimento dipartimento) {
+
+        java.lang.Long id = dipartimento != null ? dipartimento.getId() : null;
+
+        log.info("INIZIO MODIFICA DIPARTIMENTO - ID={} - NOME={} - CODICE={}",
+                id,
+                dipartimento != null ? dipartimento.getNome() : null,
+                dipartimento != null ? dipartimento.getCodice() : null);
 
         try {
-            // Verifico che esista prima di aggiornare
-            checkExistById(id);
+            if (dipartimento == null || id == null) {
+                log.error("ERRORE MODIFICA DIPARTIMENTO - ID MANCANTE");
+                throw new IllegalArgumentException("ID DIPARTIMENTO MANCANTE");
+            }
 
-            Dipartimento updated = dipartimentoRepository.save(dipartimento);
-            log.info("DIPARTIMENTO AGGIORNATO CON ID: {}", updated.getId());
-            return updated;
+            java.lang.String codice = dipartimento.getCodice();
+            if (codice == null || codice.isBlank()) {
+                log.error("ERRORE MODIFICA DIPARTIMENTO - CODICE MANCANTE - ID={}", id);
+                throw new IllegalArgumentException("CODICE DIPARTIMENTO MANCANTE");
+            }
+
+            codice = codice.trim();
+
+            if (dipartimentoRepository.existsByCodiceIgnoreCaseAndIdNot(codice, id)) {
+                log.error("ERRORE MODIFICA DIPARTIMENTO - CODICE GIA' PRESENTE - ID={} - CODICE={}", id, codice);
+                throw new UpdateException(Dipartimento.class.getSimpleName(), "CODICE", codice);
+            }
+
+            int updatedRows = dipartimentoRepository.updateById(id, dipartimento.getNome(), codice);
+
+            if (updatedRows == 0) {
+                log.error("DIPARTIMENTO NON TROVATO PER UPDATE - ID={}", id);
+                throw new EntityNotFoundException("DIPARTIMENTO NON TROVATO - ID=" + id);
+            }
+
+            log.info("FINE MODIFICA DIPARTIMENTO - OK - ID={} - CODICE={}", id, codice);
 
         } catch (EntityNotFoundException e) {
-            // la rilancio così com’è (è già quella “giusta”)
             throw e;
+
         } catch (Exception e) {
-            log.error("ERRORE NELL'AGGIORNAMENTO DEL DIPARTIMENTO CON ID: {}", id, e);
-            throw new UpdateException(Dipartimento.class.getSimpleName(), "id", id);
+            log.error("ERRORE MODIFICA DIPARTIMENTO - ID={}", id, e);
+            throw new UpdateException(Dipartimento.class.getSimpleName(), "ID", java.lang.String.valueOf(id));
         }
     }
 
+
+
     @Override
-    public void delete(Long id) {
+    @Transactional
+    public void delete(java.lang.Long id) {
 
         if (id == null) {
-            log.warn("TENTATIVO DI DELETE DIPARTIMENTO SENZA ID: {}", id.toString());
-            throw new IllegalArgumentException("ID dipartimento mancante per update");
+            log.warn("TENTATIVO DI DELETE DIPARTIMENTO SENZA ID");
+            throw new IllegalArgumentException("ID DIPARTIMENTO MANCANTE PER DELETE");
         }
-        log.info("ELIMINAZIONE DIPARTIMENTO CON ID: {}", id);
+
+        log.info("INIZIO ELIMINAZIONE DIPARTIMENTO - ID={}", id);
 
         try {
-            checkExistById(id);
+            // 1 QUERY: EXISTS
+            if (!dipartimentoRepository.existsById(id)) {
+                log.error("DIPARTIMENTO NON TROVATO - ID={}", id);
+                throw new EntityNotFoundException(Dipartimento.class.getSimpleName(), "ID", id);
+            }
 
+            // 1 QUERY: DELETE
             dipartimentoRepository.deleteById(id);
-            log.info("DIPARTIMENTO ELIMINATO CON ID: {}", id);
+
+            log.info("FINE ELIMINAZIONE DIPARTIMENTO - ID={}", id);
 
         } catch (EntityNotFoundException e) {
             throw e;
+
         } catch (Exception e) {
-            log.error("ERRORE NELLA CANCELLAZIONE DEL DIPARTIMENTO CON ID: {}", id, e);
+            log.error("ERRORE ELIMINAZIONE DIPARTIMENTO - ID={}", id, e);
             throw new DeleteException(Dipartimento.class.getSimpleName(), id);
         }
     }
+
 
 
     /*
     TESTATO 03/12/2025 FUNZIONA
      */
     @Override
-    public void checkExistById(Long id) {
+    public void checkExistById(java.lang.Long id) {
         if (!dipartimentoRepository.existsById(id)) {
             log.error("DIPARTIMENTO NON TROVATO, ID: {}", id);
             throw new EntityNotFoundException(Dipartimento.class.getSimpleName(), "id", id);
@@ -93,55 +163,55 @@ public class DipartimentoServiceImpl implements DipartimentoService {
     }
 
 
-    /*
-    TESTATO 03/12/2025 FUNZIONA
-     */
+    @Transactional(readOnly = true)
     @Override
-    public Dipartimento getById(Long id) {
-        log.info("RECUPERO DIPARTIMENTO CON ID: {}", id);
+    public List<DipartimentoResponseDTO> getAllDto() {
 
-        return dipartimentoRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("DIPARTIMENTO NON TROVATO CON ID: {}", id);
-                    return new EntityNotFoundException(
-                            Dipartimento.class.getSimpleName(),
-                            "id",
-                            id
-                    );
-                });
-    }
-
-    @Override
-    public Dipartimento getByCorsoId(Long corsoId) {
-        Dipartimento dipartimento = dipartimentoRepository.findByCorsoDiStudiId(corsoId)
-                .orElseThrow(() -> new EntityNotFoundException("CorsoDiStudi", "id", corsoId));
-        return dipartimento;
-    }
-
-    @Override
-    public Dipartimento getDipartimentoByPersonaId(Long personaId) {
-        Dipartimento dipartimento = dipartimentoRepository.findByPersonaId(personaId)
-                .orElseThrow(() -> new EntityNotFoundException("Persona", "id", personaId));
-        return dipartimento;
-    }
-
-
-
-    /*
-    TESTATO 02/12/2025 FUNZIONA
-     */
-    @Override
-    public List<Dipartimento> getAll() {
-        log.info("RECUPERO DI TUTTI I DIPARTIMENTI");
+        log.info("INIZIO RECUPERO DI TUTTI I DIPARTIMENTI (DTO)");
 
         try {
-            List<Dipartimento> dipartimenti = dipartimentoRepository.findAll();
-            log.info("DIPARTIMENTI TROVATI: {}", dipartimenti.size());
-            return dipartimenti;
+            List<DipartimentoResponseDTO> res = dipartimentoRepository.findAllDto();
+            log.info("FINE RECUPERO DIPARTIMENTI (DTO) - TROVATI={}", res.size());
+            return res;
+
         } catch (Exception e) {
-            log.error("ERRORE NEL RECUPERO DI TUTTI I DIPARTIMENTI", e);
+            log.error("ERRORE RECUPERO DIPARTIMENTI (DTO)", e);
             throw new GetAllException(Dipartimento.class.getSimpleName());
         }
     }
+
+    @Transactional(readOnly = true)
+    @Override
+    public DipartimentoResponseDTO getDtoById(java.lang.Long id) {
+
+        log.info("INIZIO RECUPERO DIPARTIMENTO (DTO) - ID={}", id);
+
+        return dipartimentoRepository.findDtoById(id)
+                .orElseThrow(() -> {
+                    log.error("DIPARTIMENTO NON TROVATO (DTO) - ID={}", id);
+                    return new EntityNotFoundException(Dipartimento.class.getSimpleName(), "ID", id);
+                });
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public DipartimentoResponseDTO getDtoByCorsoId(java.lang.Long corsoId) {
+
+        log.info("INIZIO RECUPERO DIPARTIMENTO (DTO) DA CORSO - CORSO_ID={}", corsoId);
+
+        return dipartimentoRepository.findDtoByCorsoDiStudiId(corsoId)
+                .orElseThrow(() -> new EntityNotFoundException("CorsoDiStudi", "ID", corsoId));
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public DipartimentoResponseDTO getDtoByPersonaId(java.lang.Long personaId) {
+
+        log.info("INIZIO RECUPERO DIPARTIMENTO (DTO) DA PERSONA - PERSONA_ID={}", personaId);
+
+        return dipartimentoRepository.findDtoByPersonaId(personaId)
+                .orElseThrow(() -> new EntityNotFoundException("Persona", "ID", personaId));
+    }
+
 
 }

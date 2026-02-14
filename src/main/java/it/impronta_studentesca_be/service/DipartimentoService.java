@@ -1,24 +1,30 @@
 package it.impronta_studentesca_be.service;
 
+import it.impronta_studentesca_be.dto.record.DipartimentoResponseDTO;
 import it.impronta_studentesca_be.entity.Dipartimento;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 public interface DipartimentoService {
 
-    Dipartimento create(Dipartimento dipartimento);
+    void create(Dipartimento dipartimento);
 
-    Dipartimento update(Dipartimento dipartimento);
+    void update(Dipartimento dipartimento);
 
-    void delete(Long id);
+    void delete(java.lang.Long id);
 
-    void checkExistById(Long id);
+    void checkExistById(java.lang.Long id);
 
-    Dipartimento getById(Long id);
+    @Transactional(readOnly = true)
+    List<DipartimentoResponseDTO> getAllDto();
 
-    Dipartimento getByCorsoId(Long corsoId);
+    @Transactional(readOnly = true)
+    DipartimentoResponseDTO getDtoById(java.lang.Long id);
 
-    Dipartimento getDipartimentoByPersonaId(Long personaId);
+    @Transactional(readOnly = true)
+    DipartimentoResponseDTO getDtoByCorsoId(java.lang.Long corsoId);
 
-    List<Dipartimento> getAll();
+    @Transactional(readOnly = true)
+    DipartimentoResponseDTO getDtoByPersonaId(java.lang.Long personaId);
 }

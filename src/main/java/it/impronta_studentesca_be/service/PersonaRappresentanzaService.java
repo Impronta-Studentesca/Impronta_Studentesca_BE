@@ -7,12 +7,12 @@ import java.util.List;
 
 public interface PersonaRappresentanzaService {
 
-    PersonaRappresentanza create(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine);
+    void create(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine);
     void checkExistById(Long id);
 
     void checkExistByPersonaIdEOraganoId(Long personaId, Long organoRappresentanzaId);
 
-    PersonaRappresentanza update(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine);
+    void update(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine);
 
     PersonaRappresentanza delete(Long id);
 
@@ -25,4 +25,5 @@ public interface PersonaRappresentanzaService {
     List<PersonaRappresentanza> getByOrganoId(Long organoId);
 
     List<PersonaRappresentanza> getAll();
+
 }

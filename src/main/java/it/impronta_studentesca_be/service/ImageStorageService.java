@@ -10,6 +10,8 @@ public interface ImageStorageService {
      */
     ImageUploadResponseDTO uploadPersonaPhoto(Long personaId, MultipartFile file);
 
+    void deleteFileById(String fileId);
+
 /**
  * IL DOWNLOAD VERRA' FATTO DIRETTAMENTE NEL FE CON FORO_URL
  */

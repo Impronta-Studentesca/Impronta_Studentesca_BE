@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Base64;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -32,20 +30,17 @@ public class ImageKitStorageServiceImpl implements ImageStorageService {
             log.error("UPLOAD IMAGEKIT FALLITO: PERSONA_ID NULL");
             throw new IllegalArgumentException("personaId non valido");
         }
-
         if (file == null || file.isEmpty()) {
             log.warn("UPLOAD IMAGEKIT BLOCCATO: FILE NULL O VUOTO. PERSONA_ID={}", personaId);
             throw new IllegalArgumentException("File immagine mancante o vuoto");
         }
 
         try {
-            // Nome file “pulito”
-            String originalName;
+            String originalName = null;
             try {
                 originalName = file.getOriginalFilename();
-            } catch (Exception e) {
-                log.error("ERRORE LETTURA ORIGINAL FILENAME. PERSONA_ID={}", personaId, e);
-                originalName = null;
+            } catch (Exception ex) {
+                log.error("ERRORE LETTURA ORIGINAL FILENAME. PERSONA_ID={}", personaId, ex);
             }
 
             String safeName = (originalName != null && !originalName.isBlank())
@@ -55,33 +50,21 @@ public class ImageKitStorageServiceImpl implements ImageStorageService {
             log.info("PREPARAZIONE FILE UPLOAD. PERSONA_ID={}, SAFE_NAME={}, SIZE_BYTES={}",
                     personaId, safeName, file.getSize());
 
-            // Contenuto in base64 (come vuole l’SDK)
-            String base64;
+            byte[] bytes;
             try {
-                base64 = Base64.getEncoder().encodeToString(file.getBytes());
-            } catch (Exception e) {
-                log.error("ERRORE LETTURA BYTES/BASE64. PERSONA_ID={}, SAFE_NAME={}", personaId, safeName, e);
-                throw new RuntimeException("Errore lettura file immagine", e);
+                bytes = file.getBytes();
+            } catch (Exception ex) {
+                log.error("ERRORE LETTURA BYTES FILE. PERSONA_ID={}, SAFE_NAME={}", personaId, safeName, ex);
+                throw new RuntimeException("Errore lettura file immagine", ex);
             }
 
-            FileCreateRequest request;
-            try {
-                request = new FileCreateRequest(base64, safeName);
-                request.setFolder(personaFolder);
-                request.setUseUniqueFileName(true);
-            } catch (Exception e) {
-                log.error("ERRORE COSTRUZIONE REQUEST IMAGEKIT. PERSONA_ID={}, SAFE_NAME={}", personaId, safeName, e);
-                throw new RuntimeException("Errore preparazione richiesta ImageKit", e);
-            }
+            FileCreateRequest request = new FileCreateRequest(bytes, safeName);
+            request.setFolder(personaFolder);
+            request.setUseUniqueFileName(true);
 
-            Result result;
-            try {
-                log.info("CHIAMATA IMAGEKIT UPLOAD. PERSONA_ID={}, FOLDER={}", personaId, personaFolder);
-                result = imageKit.upload(request);
-            } catch (Exception e) {
-                log.error("ERRORE CHIAMATA IMAGEKIT UPLOAD. PERSONA_ID={}, SAFE_NAME={}", personaId, safeName, e);
-                throw new RuntimeException("Errore upload immagine su ImageKit", e);
-            }
+            log.info("CHIAMATA IMAGEKIT UPLOAD. PERSONA_ID={}, FOLDER={}", personaId, personaFolder);
+
+            Result result = imageKit.upload(request);
 
             if (result == null || result.getFileId() == null || result.getUrl() == null) {
                 log.error("RISPOSTA IMAGEKIT NON VALIDA. PERSONA_ID={}, RESULT={}", personaId, result);
@@ -100,15 +83,36 @@ public class ImageKitStorageServiceImpl implements ImageStorageService {
 
             return dto;
 
-        } catch (IllegalArgumentException e) {
-            log.warn("UPLOAD IMAGEKIT FALLITO PER INPUT NON VALIDO. PERSONA_ID={}. MSG={}", personaId, e.getMessage());
-            throw e;
-
-        } catch (Exception e) {
-            log.error("UPLOAD IMAGEKIT FALLITO. PERSONA_ID={}", personaId, e);
-            throw new RuntimeException("Errore upload immagine", e);
+        } catch (IllegalArgumentException ex) {
+            log.warn("UPLOAD IMAGEKIT FALLITO PER INPUT NON VALIDO. PERSONA_ID={}. MSG={}", personaId, ex.getMessage());
+            throw ex;
+        } catch (Exception ex) {
+            log.error("UPLOAD IMAGEKIT FALLITO. PERSONA_ID={}", personaId, ex);
+            throw new RuntimeException("Errore upload immagine", ex);
         }
     }
+
+    @Override
+    public void deleteFileById(String fileId) {
+
+        log.info("INIZIO DELETE IMAGEKIT. FILE_ID={}", fileId);
+
+        if (fileId == null || fileId.isBlank()) {
+            log.warn("DELETE IMAGEKIT SKIPPATO: FILE_ID NULL O VUOTO");
+            return;
+        }
+
+        try {
+            Result result = imageKit.deleteFile(fileId);
+
+            log.info("DELETE IMAGEKIT COMPLETATO. FILE_ID={}, RESULT={}", fileId, result);
+
+        } catch (Exception ex) {
+            log.error("DELETE IMAGEKIT FALLITO. FILE_ID={}", fileId, ex);
+            throw new RuntimeException("Errore delete immagine", ex);
+        }
+    }
+
 
 
 

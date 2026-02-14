@@ -4,21 +4,28 @@ import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.Ruolo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
 
 public interface PersonaService {
 
-    Persona create(Persona persona);
+    void create(Persona persona);
 
-    Persona update(Persona persona);
+    void update(Persona persona);
 
     void delete(Long id);
 
     void checkExistById(Long id);
 
     Persona getById(Long id);
+
+    @Transactional(readOnly = true)
+    List<PersonaMiniDTO> getMiniByCorso(Long corsoId);
+
+    @Transactional(readOnly = true)
+    List<PersonaMiniDTO> getMiniByDipartimento(Long dipartimentoId);
 
     PersonaMiniDTO getPersonaLiteById(Long id);
 
@@ -29,11 +36,6 @@ public interface PersonaService {
     List<Persona> getStaff();
 
     List<Persona> getByUfficio(Long ufficioId);
-
-    List<Persona> getByCorsoDiStudi(Long corsoId);
-
-    List<Persona> getByDipartimento(Long dipartimentoId);
-
 
     Set<Ruolo> aggiungiRuolo(Long personaId, Roles nome);
 

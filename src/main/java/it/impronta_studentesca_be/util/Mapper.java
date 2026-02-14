@@ -1,15 +1,10 @@
 package it.impronta_studentesca_be.util;
 
 import it.impronta_studentesca_be.constant.Roles;
-import it.impronta_studentesca_be.constant.RuoloDirettivo;
 import it.impronta_studentesca_be.dto.*;
-import it.impronta_studentesca_be.dto.record.PersonaDirettivoMiniDTO;
 import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.*;
-import it.impronta_studentesca_be.repository.CorsoDiStudiRepository;
-import it.impronta_studentesca_be.repository.DipartimentoRepository;
-import it.impronta_studentesca_be.repository.PersonaRepository;
-import it.impronta_studentesca_be.repository.UfficioRepository;
+import it.impronta_studentesca_be.repository.*;
 import it.impronta_studentesca_be.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -35,49 +30,53 @@ public class Mapper {
     @Autowired
     private RuoloService ruoloService;
 
+    @Autowired
+    private RuoloRepository ruoloRepository;
+
 
     public Persona toPersona(PersonaRequestDTO dto) {
 
-        if (dto == null) {
-            return null;
-//        } else if (dto.getId() != null) {
-//            return personaService.getById(dto.getId());
-        } else {
+        if (dto == null) return null;
 
-            // Carico il corso di studi (obbligatorio)
-
-            CorsoDiStudi corsoDiStudi = null;
-            if (dto.getCorsoDiStudiId() != null) {
-                corsoDiStudi = corsoDiStudiRepository.getReferenceById(dto.getCorsoDiStudiId());
-            }
-
-            // Carico l'ufficio se presente
-            Ufficio ufficio = null;
-            if (dto.getUfficioId() != null) {
-                ufficio = ufficioRepository.getReferenceById(dto.getUfficioId());
-            }
-
-
-            Set<Ruolo> ruoliUser = null;
-            if (dto.getRuoli() == null || dto.getRuoli().isEmpty()) {
-                //assegno di default USER
-                ruoliUser = Set.of(ruoloService.getByNome(Roles.USER));
-            } else {
-                ruoliUser = dto.getRuoli().stream().map(ruolo -> ruoloService.getByNome(ruolo)).collect(Collectors.toSet());
-
-            }
-            return Persona.builder()
-                    .id(dto.getId())                 // di solito null in create
-                    .nome(dto.getNome())
-                    .cognome(dto.getCognome())
-                    .email(dto.getEmail().trim().toLowerCase(Locale.ROOT))
-                    .corsoDiStudi(corsoDiStudi)
-                    .ufficio(ufficio)
-                    .annoCorso(dto.getAnnoCorso())
-                    .ruoli(ruoliUser)        // o un Set vuoto se non vuoi default
-                    .build();
+        CorsoDiStudi corsoDiStudi = null;
+        if (dto.getCorsoDiStudiId() != null) {
+            corsoDiStudi = corsoDiStudiRepository.getReferenceById(dto.getCorsoDiStudiId());
         }
+
+        Ufficio ufficio = null;
+        if (dto.getUfficioId() != null) {
+            ufficio = ufficioRepository.getReferenceById(dto.getUfficioId());
+        }
+
+        Set<Roles> nomiRuoli;
+        if (dto.getRuoli() == null || dto.getRuoli().isEmpty()) {
+            nomiRuoli = Set.of(Roles.USER);
+        } else {
+            nomiRuoli = new HashSet<>(dto.getRuoli());
+        }
+
+        Set<Ruolo> ruoliUser = new HashSet<>(ruoloRepository.findByNomeIn(nomiRuoli));
+
+        // opzionale: se vuoi validare che non manchi nessun ruolo richiesto
+        // if (ruoliUser.size() != nomiRuoli.size()) ...
+
+        String email = dto.getEmail();
+        if (email != null) {
+            email = email.trim().toLowerCase(Locale.ROOT);
+        }
+
+        return Persona.builder()
+                .id(dto.getId())
+                .nome(dto.getNome())
+                .cognome(dto.getCognome())
+                .email(email)
+                .corsoDiStudi(corsoDiStudi)
+                .ufficio(ufficio)
+                .annoCorso(dto.getAnnoCorso())
+                .ruoli(ruoliUser)
+                .build();
     }
+
 
     public Persona toPersona(PersonaMiniDTO dto) {
         return Persona.builder()
@@ -87,51 +86,58 @@ public class Mapper {
                 .build();
     }
 
+    public Dipartimento toDipartimentoUpdate(DipartimentoRequestDTO dto) {
+        if (dto == null) return null;
+
+        return Dipartimento.builder()
+                .id(dto.getId())
+                .nome(dto.getNome())
+                .codice(dto.getCodice())
+                .build();
+    }
+
+
     public Dipartimento toDipartimento(DipartimentoRequestDTO dto) {
+        if (dto == null) return null;
 
-        if (dto == null) {
-            return null;
-        } else {
-
-            return Dipartimento.builder()
-                    .id(dto.getId())        // null in create, valorizzato in update
-                    .nome(dto.getNome())
-                    .codice(dto.getCodice())
-                    .build();
-        }
+        return Dipartimento.builder()
+                .nome(dto.getNome())
+                .codice(dto.getCodice())
+                .build();
     }
 
-    public CorsoDiStudi toCorsoDiSudi(CorsoDiStudiRequestDTO dto) {
-        if (dto == null) {
-            return null;
-        } else {
 
-            return CorsoDiStudi.builder()
-                    .id(dto.getId())                               // null in create
-                    .nome(dto.getNome())
-                    .tipoCorso(dto.getTipoCorso())
-                    .dipartimento(dipartimentoRepository.getReferenceById(dto.getDipartimentoId()))
-                    .build();
-        }
+    public CorsoDiStudi toCorsoDiStudiUpdate(CorsoDiStudiRequestDTO dto) {
+        if (dto == null) return null;
+
+        return CorsoDiStudi.builder()
+                .id(dto.getId())
+                .nome(dto.getNome())
+                .tipoCorso(dto.getTipoCorso())
+                .build();
     }
+
+    public CorsoDiStudi toCorsoDiStudi(CorsoDiStudiRequestDTO dto) {
+        if (dto == null) return null;
+
+        return CorsoDiStudi.builder()
+                .nome(dto.getNome())
+                .tipoCorso(dto.getTipoCorso())
+                // DIPARTIMENTO LO SETTI NEL SERVICE
+                .build();
+    }
+
 
     public Ufficio toUfficio(UfficioRequestDTO dto) {
-        if (dto == null) {
-            return null;
-        } else {
+        if (dto == null) return null;
 
-            Persona responsabile = null;
-            if (dto.getResponsabileId() != null) {
-                responsabile = personaRepository.getReferenceById(dto.getResponsabileId());
-            }
-
-            return Ufficio.builder()
-                    .id(dto.getId())          // null in create, valorizzato in update
-                    .nome(dto.getNome())
-                    .responsabile(responsabile)
-                    .build();
-        }
+        return Ufficio.builder()
+                .id(dto.getId())
+                .nome(dto.getNome())
+                // RESPONSABILE LO SETTI NEL SERVICE
+                .build();
     }
+
 
 
     public Direttivo toDirettivo(DirettivoRequestDTO dto) {

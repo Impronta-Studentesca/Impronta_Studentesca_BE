@@ -3,6 +3,8 @@ package it.impronta_studentesca_be.service;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.dto.record.CorsoMiniDTO;
+import it.impronta_studentesca_be.dto.record.DipartimentoResponseDTO;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -12,59 +14,58 @@ public interface PublicImprontaService {
 
     // Dipartimenti
     List<DipartimentoResponseDTO> getDipartimenti();
-    DipartimentoResponseDTO getDipartimentoById(Long dipartimentoId);
-    DipartimentoResponseDTO getDipartimentoByCorsoId(Long corsoId);
-    DipartimentoResponseDTO getDipartimentoByPersonaId(Long personaId);
+    DipartimentoResponseDTO getDipartimentoById(java.lang.Long dipartimentoId);
+    DipartimentoResponseDTO getDipartimentoByCorsoId(java.lang.Long corsoId);
+    DipartimentoResponseDTO getDipartimentoByPersonaId(java.lang.Long personaId);
 
     //Corsi
-    List<CorsoMiniDTO> getCorsiByDipartimento(Long dipartimentoId);
-    CorsoDiStudiResponseDTO getCorsoById(Long corsoId);
-    CorsoDiStudiResponseDTO getCorsoByPersonaId(Long personaId);
+    List<CorsoMiniDTO> getCorsiByDipartimento(java.lang.Long dipartimentoId);
+    CorsoDiStudiResponseDTO getCorsoById(java.lang.Long corsoId);
+    CorsoDiStudiResponseDTO getCorsoByPersonaId(java.lang.Long personaId);
 
     //Uffici
     List<UfficioResponseDTO> getUffici();
 
 
-    PersonaPhotoResponseDTO getFotoPersona(Long personaId);
+    PersonaPhotoResponseDTO getFotoPersona(java.lang.Long personaId);
 
     // Persone
-    PersonaResponseDTO getPersonaById(Long personaId);
-    List<PersonaResponseDTO> getStaff();
-    List<PersonaResponseDTO> getPersoneByDipartimento(Long dipartimentoId);
-    List<PersonaResponseDTO> getPersoneByCorso(Long corsoId);
+    PersonaResponseDTO getPersonaById(java.lang.Long personaId);
+    List<PersonaMiniDTO> getPersoneByDipartimento(Long dipartimentoId);
+    List<PersonaMiniDTO> getPersoneByCorso(Long corsoId);
 
-    OrganoRappresentanzaDTO getOrganoById(Long organoId);
+    OrganoRappresentanzaDTO getOrganoById(java.lang.Long organoId);
 
     List<OrganoRappresentanzaDTO> getOrganoAll();
 
-    PersonaConRappresentanzeResponseDTO getRappresentanteByPersona(Long personaId);
+    PersonaConRappresentanzeResponseDTO getRappresentanteByPersona(java.lang.Long personaId);
 
-    List<PersonaRappresentanzaResponseDTO>  getRappresentanteByOrgano(Long personaId);
+    List<PersonaRappresentanzaResponseDTO>  getRappresentanteByOrgano(java.lang.Long personaId);
 
     List<PersonaConRappresentanzeResponseDTO> getRappresentanteAll();
 
     // Direttivi / rappresentanza
-    List<PersonaDirettivoResponseDTO> getMembriDirettivo(Long direttivoId);
-    PersonaRappresentanzaResponseDTO getPersonaRappresentanzaById(Long id);
+    List<PersonaDirettivoResponseDTO> getMembriDirettivo(java.lang.Long direttivoId);
+    PersonaRappresentanzaResponseDTO getPersonaRappresentanzaById(java.lang.Long id);
 
     // Se vuoi, metodi “aggregati” già pronti per il FE
  // es. tipo=GENERALE
 
-    DirettivoResponseDTO getDirettivoById(Long personaId);
+    DirettivoResponseDTO getDirettivoById(java.lang.Long personaId);
 
     List<DirettivoResponseDTO> getDirettivi();
 
     List<DirettivoResponseDTO> getDirettiviByTipo(TipoDirettivo tipo);
 
-    List<DirettivoResponseDTO> getDirettiviByDipartimento(Long dipartimentoId);
+    List<DirettivoResponseDTO> getDirettiviByDipartimento(java.lang.Long dipartimentoId);
 
     List<DirettivoResponseDTO> getDirettiviInCarica();
 
     List<DirettivoResponseDTO> getDirettiviByTipoInCarica(TipoDirettivo tipo);
 
-    void creaPassword(Long personaId, String password);
+    void creaPassword(java.lang.Long personaId, java.lang.String password);
 
-    void modificaPassword(Long personaId, String password);
+    void modificaPassword(java.lang.Long personaId, java.lang.String password);
 
     LoginResponseDTO login(HttpServletRequest request, HttpServletResponse response, LoginRequestDTO dto);
 

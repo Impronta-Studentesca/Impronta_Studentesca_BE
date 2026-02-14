@@ -1,4 +1,4 @@
-package it.impronta_studentesca_be.dto;
+package it.impronta_studentesca_be.dto.record;
 
 import it.impronta_studentesca_be.entity.Dipartimento;
 import lombok.AllArgsConstructor;
@@ -23,6 +23,8 @@ public class DipartimentoResponseDTO {
         this.nome = dipartimento.getNome();
         this.codice = dipartimento.getCodice();
     }
+
+
 
 
 }

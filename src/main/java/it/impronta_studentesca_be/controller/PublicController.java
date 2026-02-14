@@ -5,6 +5,8 @@ import it.impronta_studentesca_be.constant.ApiPath;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.dto.record.CorsoMiniDTO;
+import it.impronta_studentesca_be.dto.record.DipartimentoResponseDTO;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.service.PublicImprontaService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,21 +32,21 @@ public class PublicController {
 
     @GetMapping("/" + ApiPath.DIPARTIMENTO_PATH + "/{dipartimentoId}")
     public ResponseEntity<DipartimentoResponseDTO> getDipartimentoById(
-            @PathVariable Long dipartimentoId
+            @PathVariable java.lang.Long dipartimentoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getDipartimentoById(dipartimentoId));
     }
 
     @GetMapping( "/" + ApiPath.CORSO_PATH + "/{corsoId}/" + ApiPath.DIPARTIMENTO_PATH)
     public ResponseEntity<DipartimentoResponseDTO> getDipartimentoByCorsoId(
-            @PathVariable Long corsoId
+            @PathVariable java.lang.Long corsoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getDipartimentoByCorsoId(corsoId));
     }
 
     @GetMapping( "/" + ApiPath.PERSONA_PATH + "/{personaId}/" + ApiPath.DIPARTIMENTO_PATH)
     public ResponseEntity<DipartimentoResponseDTO> getDipartimentoByPersonaId(
-            @PathVariable Long personaId
+            @PathVariable java.lang.Long personaId
     ) {
         return ResponseEntity.ok(publicImprontaService.getDipartimentoByPersonaId(personaId));
     }
@@ -54,14 +56,14 @@ public class PublicController {
 
     @GetMapping("/" + ApiPath.DIPARTIMENTO_PATH + "/{dipartimentoId}/" + ApiPath.CORSI_PATH)
     public ResponseEntity<List<CorsoMiniDTO>> getCorsiByDipartimento(
-            @PathVariable Long dipartimentoId
+            @PathVariable java.lang.Long dipartimentoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getCorsiByDipartimento(dipartimentoId));
     }
 
     @GetMapping("/" + ApiPath.PERSONA_PATH + "/{personaId}/" + ApiPath.CORSO_PATH)
     public ResponseEntity<CorsoDiStudiResponseDTO> getCorsoByPersona(
-            @PathVariable Long personaId
+            @PathVariable java.lang.Long personaId
     ) {
         return ResponseEntity.ok(publicImprontaService.getCorsoByPersonaId(personaId));
     }
@@ -69,7 +71,7 @@ public class PublicController {
 
     @GetMapping("/" + ApiPath.CORSO_PATH + "/{corsoId}")
     public ResponseEntity<CorsoDiStudiResponseDTO> getCorsoById(
-            @PathVariable Long corsoId
+            @PathVariable java.lang.Long corsoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getCorsoById(corsoId));
     }
@@ -92,22 +94,22 @@ public class PublicController {
 
     @GetMapping("/" + ApiPath.PERSONA_PATH + "/{personaId}")
     public ResponseEntity<PersonaResponseDTO> getPersonaById(
-            @PathVariable Long personaId
+            @PathVariable java.lang.Long personaId
     ) {
         return ResponseEntity.ok(publicImprontaService.getPersonaById(personaId));
     }
 
     //TODO:OTTIMIZZARE DA QUI IN POI
     @GetMapping("/" + ApiPath.DIPARTIMENTO_PATH + "/{dipartimentoId}/" +  ApiPath.PERSONE_PATH)
-    public ResponseEntity<List<PersonaResponseDTO>> getPersoneByDipartimento(
-            @PathVariable Long dipartimentoId
+    public ResponseEntity<List<PersonaMiniDTO>> getPersoneByDipartimento(
+            @PathVariable java.lang.Long dipartimentoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getPersoneByDipartimento(dipartimentoId));
     }
 
     @GetMapping("/" + ApiPath.CORSO_PATH + "/{corsoId}/" + ApiPath.PERSONE_PATH)
-    public ResponseEntity<List<PersonaResponseDTO>> getPersoneByCorso(
-            @PathVariable Long corsoId
+    public ResponseEntity<List<PersonaMiniDTO>> getPersoneByCorso(
+            @PathVariable java.lang.Long corsoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getPersoneByCorso(corsoId));
     }
@@ -117,7 +119,7 @@ public class PublicController {
 
     @GetMapping("/" + ApiPath.DIRETTIVO_PATH + "/{direttivoId}")
     public ResponseEntity<DirettivoResponseDTO> getDirettivoById(
-            @PathVariable Long direttivoId
+            @PathVariable java.lang.Long direttivoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getDirettivoById(direttivoId));
     }
@@ -125,14 +127,14 @@ public class PublicController {
 
     @GetMapping("/" + ApiPath.TIPO_PATH + "/{tipo}/" + ApiPath.DIRETTIVI_PATH)
     public ResponseEntity<List<DirettivoResponseDTO>> getDirettivoById(
-            @PathVariable String tipo
+            @PathVariable java.lang.String tipo
     ) {
         return ResponseEntity.ok(publicImprontaService.getDirettiviByTipo(TipoDirettivo.valueOf(tipo)));
     }
 
     @GetMapping("/" + ApiPath.DIPARTIMENTO_PATH + "/{dipartimentoId}/" +  ApiPath.DIRETTIVI_PATH)
     public ResponseEntity<List<DirettivoResponseDTO>> getDirettiviByDipartimento(
-            @PathVariable Long dipartimentoId
+            @PathVariable java.lang.Long dipartimentoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getDirettiviByDipartimento(dipartimentoId));
     }
@@ -154,7 +156,7 @@ public class PublicController {
 
     @GetMapping("/" + ApiPath.DIRETTIVO_PATH + "/{direttivoId}/" + ApiPath.PERSONE_PATH)
     public ResponseEntity<List<PersonaDirettivoResponseDTO>> getMembriDirettivo(
-            @PathVariable Long direttivoId
+            @PathVariable java.lang.Long direttivoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getMembriDirettivo(direttivoId));
     }
@@ -164,7 +166,7 @@ public class PublicController {
 
     @GetMapping("/" + ApiPath.ORGANO_PATH + "/{organoId}/")
     public ResponseEntity<OrganoRappresentanzaDTO> getOrganoById(
-            @PathVariable Long organoId
+            @PathVariable java.lang.Long organoId
     ) {
         return ResponseEntity.ok(publicImprontaService.getOrganoById(organoId));
     }

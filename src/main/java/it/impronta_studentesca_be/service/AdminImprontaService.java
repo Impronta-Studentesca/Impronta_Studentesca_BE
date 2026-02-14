@@ -3,6 +3,7 @@ package it.impronta_studentesca_be.service;
 import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -11,9 +12,15 @@ import java.util.List;
 public interface AdminImprontaService {
 
     // Persone
-    PersonaResponseDTO creaPersona(PersonaRequestDTO persona);
-    PersonaResponseDTO aggiornaPersona(PersonaRequestDTO persona);
+    void creaPersona(PersonaRequestDTO persona);
+    void aggiornaPersona(PersonaRequestDTO persona);
     void eliminaPersona(Long personaId);
+
+    @Transactional
+    void modificaUfficio(UfficioRequestDTO ufficio);
+
+    @Transactional
+    void eliminaUfficio(Long id);
 
     List<StaffCardDTO> getStaffCards();
     ImageUploadResponseDTO uploadFotoPersona(Long personaId, MultipartFile file);
@@ -22,6 +29,10 @@ public interface AdminImprontaService {
     DirettivoResponseDTO creaDirettivo(DirettivoRequestDTO direttivo);
     DirettivoResponseDTO aggiornaDirettivo(DirettivoRequestDTO direttivo);
     void eliminaDirettivo(Long direttivoId);
+
+    @Transactional
+    void deleteFotoPersona(Long personaId);
+
     void assegnaPersonaADirettivo(Long personaId, Long direttivoId, String ruolo);
 
     void modificaPersonaADirettivo(Long personaId, Long direttivoId, String ruolo);
@@ -33,16 +44,20 @@ public interface AdminImprontaService {
     // Organi di rappresentanza
     void assegnaPersonaRappresentanza(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine);
     void modificaPersonaRappresentanza(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine);
+
+    void eliminaPersonaRappresentanza(Long personaId, String nome);
+
     void eliminaPersonaRappresentanza(Long personaRappresentanzaId);
 
+
     // Dipartimenti / corsi / uffici (CRUD admin)
-    DipartimentoResponseDTO creaDipartimento(DipartimentoRequestDTO dipartimento);
-    DipartimentoResponseDTO modificaDipartimento(DipartimentoRequestDTO dipartimento);
+    void creaDipartimento(DipartimentoRequestDTO dipartimento);
+    void modificaDipartimento(DipartimentoRequestDTO dipartimento);
     void eliminaDipartimento(DipartimentoRequestDTO dipartimento);
-    CorsoDiStudiResponseDTO creaCorso(CorsoDiStudiRequestDTO corso);
-    CorsoDiStudiResponseDTO modificaCorso(CorsoDiStudiRequestDTO corso);
+    void creaCorso(CorsoDiStudiRequestDTO corso);
+    void modificaCorso(CorsoDiStudiRequestDTO corso);
     void eliminaCorso(CorsoDiStudiRequestDTO corso);
-    UfficioResponseDTO creaUfficio(UfficioRequestDTO ufficio);
+    void creaUfficio(UfficioRequestDTO ufficio);
 
 
 

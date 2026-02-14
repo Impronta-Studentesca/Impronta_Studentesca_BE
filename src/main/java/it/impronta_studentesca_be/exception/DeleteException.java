@@ -11,7 +11,7 @@ public class DeleteException extends RuntimeException {
     }
 
     public DeleteException(String entityName, Object objectId) {
-        super("Impossibile eliminare l'entità " + entityName.toUpperCase() + "con ID: " + objectId);
+        super("Impossibile eliminare l'entità " + entityName.toUpperCase() + "con ID: " + objectId + " in quanto è collegata ad altre entità");
         this.entityName = entityName;
         this.objectId = objectId;
     }

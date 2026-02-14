@@ -3,6 +3,7 @@ package it.impronta_studentesca_be.service.impl;
 import it.impronta_studentesca_be.dto.CorsoDiStudiResponseDTO;
 import it.impronta_studentesca_be.dto.record.CorsoMiniDTO;
 import it.impronta_studentesca_be.entity.CorsoDiStudi;
+import it.impronta_studentesca_be.entity.Dipartimento;
 import it.impronta_studentesca_be.exception.*;
 import it.impronta_studentesca_be.repository.CorsoDiStudiRepository;
 import it.impronta_studentesca_be.repository.DipartimentoRepository;
@@ -10,6 +11,7 @@ import it.impronta_studentesca_be.service.CorsoDiStudiService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -24,43 +26,85 @@ public class CorsoDiStudiServiceImpl implements CorsoDiStudiService {
     private DipartimentoRepository  dipartimentoRepository;
 
     @Override
-    public CorsoDiStudi create(CorsoDiStudi corso) {
+    @Transactional
+    public void create(CorsoDiStudi corso, Long dipartimentoId) {
+
+        log.info("INIZIO CREAZIONE CORSO - NOME={} - TIPO={} - DIPARTIMENTO_ID={}",
+                corso != null ? corso.getNome() : null,
+                corso != null ? corso.getTipoCorso() : null,
+                dipartimentoId);
+
         try {
-            CorsoDiStudi saved = corsoDiStudiRepository.save(corso);
-            log.info("CORSO CREATO CON ID: {}", saved.getId());
-            return saved;
+            if (corso == null) {
+                log.error("ERRORE CREAZIONE CORSO - BODY NULL");
+                throw new IllegalArgumentException("CORSO NULL");
+            }
+            if (dipartimentoId == null) {
+                log.error("ERRORE CREAZIONE CORSO - DIPARTIMENTO_ID MANCANTE");
+                throw new IllegalArgumentException("DIPARTIMENTO_ID MANCANTE");
+            }
+
+            corso.setDipartimento(dipartimentoRepository.getReferenceById(dipartimentoId));
+
+            corsoDiStudiRepository.save(corso);
+
+            log.info("FINE CREAZIONE CORSO - OK");
+
         } catch (Exception e) {
-            log.error("ERRORE NELLA CREAZIONE DEL CORSO: {}, MESSAGGIO DI ERRORE: {}", corso, e.getMessage());
-            throw new CreateException(CorsoDiStudi.class.getSimpleName(), corso.getNome());
+            log.error("ERRORE CREAZIONE CORSO - NOME={} - TIPO={} - DIPARTIMENTO_ID={}",
+                    corso != null ? corso.getNome() : null,
+                    corso != null ? corso.getTipoCorso() : null,
+                    dipartimentoId,
+                    e);
+            throw new CreateException(CorsoDiStudi.class.getSimpleName(),
+                    corso != null ? corso.getNome() : "NULL");
         }
     }
 
+
+
+
     @Override
-    public CorsoDiStudi update(CorsoDiStudi corso) {
-        if (corso.getId() == null) {
-            log.warn("TENTATIVO DI UPDATE CORSO DI STUDIO SENZA ID: {}", corso);
-            throw new IllegalArgumentException("ID corso di studio mancante per update");
+    @Transactional
+    public void update(CorsoDiStudi corso, Long dipartimentoId) {
+
+        if (corso == null || corso.getId() == null) {
+            log.warn("TENTATIVO DI UPDATE CORSO DI STUDIO SENZA ID");
+            throw new IllegalArgumentException("ID CORSO DI STUDIO MANCANTE PER UPDATE");
         }
 
         Long id = corso.getId();
-        log.info("AGGIORNAMENTO CORSO DI STUDIO CON ID: {}", id);
+        log.info("INIZIO AGGIORNAMENTO CORSO DI STUDI - ID={} - DIPARTIMENTO_ID={}", id, dipartimentoId);
 
         try {
-            // Verifico che esista prima di aggiornare
-            checkExistById(id);
+            if (dipartimentoId == null) {
+                log.error("ERRORE UPDATE CORSO DI STUDI - DIPARTIMENTO_ID MANCANTE - ID={}", id);
+                throw new IllegalArgumentException("DIPARTIMENTO_ID MANCANTE");
+            }
 
-            CorsoDiStudi updated = corsoDiStudiRepository.save(corso);
-            log.info("CORSO DI STUDI AGGIORNATO CON ID: {}", updated.getId());
-            return updated;
+            Dipartimento dipRef = dipartimentoRepository.getReferenceById(dipartimentoId);
 
-        } catch (EntityNotFoundException e) {
-            // la rilancio così com’è (è già quella “giusta”)
-            throw e;
+            int updatedRows = corsoDiStudiRepository.updateById(
+                    id,
+                    corso.getNome(),
+                    corso.getTipoCorso(),
+                    dipRef
+            );
+
+            if (updatedRows == 0) {
+                log.error("CORSO DI STUDI NON TROVATO PER UPDATE - ID={}", id);
+                throw new EntityNotFoundException("CORSO DI STUDI NON TROVATO - ID=" + id);
+            }
+
+            log.info("FINE AGGIORNAMENTO CORSO DI STUDI - ID={}", id);
+
         } catch (Exception e) {
-            log.error("ERRORE NELL'AGGIORNAMENTO DEL CORSO DI STUDI CON ID: {}", id, e);
-            throw new UpdateException(CorsoDiStudi.class.getSimpleName(), "id", id);
+            log.error("ERRORE AGGIORNAMENTO CORSO DI STUDI - ID={}", id, e);
+            throw new UpdateException(CorsoDiStudi.class.getSimpleName(), "ID", String.valueOf(id));
         }
     }
+
+
 
     @Override
     public void delete(Long id) {
@@ -91,57 +135,68 @@ public class CorsoDiStudiServiceImpl implements CorsoDiStudiService {
         }
     }
 
-    /*
-    TESTATO 03/12/2025 FUNZIONA
-     */
+    @Transactional(readOnly = true)
     @Override
-    public CorsoDiStudi getById(Long id) {
-        log.info("RECUPERO CORSO DI STUDI CON ID: {}", id);
-
-        return corsoDiStudiRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("CORSO DI STUDI NON TROVATO CON ID: {}", id);
-                    return new EntityNotFoundException(
-                            CorsoDiStudi.class.getSimpleName(),
-                            "id",
-                            id
-                    );
-                });
-    }
-
-    @Override
-    public List<CorsoDiStudi> getAll() {
-        log.info("RECUPERO DI TUTTI I CORSI DI STUDIO");
+    public CorsoDiStudiResponseDTO getById(Long corsoId) {
+        log.info("RECUPERO CORSO DI STUDI (DTO) - CORSO_ID={}", corsoId);
 
         try {
-            List<CorsoDiStudi> corsi = corsoDiStudiRepository.findAll();
-            log.info("CORSI DI STUDIO TROVATI: {}", corsi.size());
+            CorsoDiStudiResponseDTO dto = corsoDiStudiRepository.findDtoById(corsoId)
+                    .orElseThrow(() -> {
+                        log.error("CORSO DI STUDI NON TROVATO (DTO) - CORSO_ID={}", corsoId);
+                        return new EntityNotFoundException(CorsoDiStudi.class.getSimpleName(), "ID", corsoId);
+                    });
+
+            log.info("CORSO DI STUDI TROVATO (DTO) - CORSO_ID={}", corsoId);
+            return dto;
+
+        } catch (EntityNotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("ERRORE RECUPERO CORSO DI STUDI (DTO) - CORSO_ID={}", corsoId, ex);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DEL CORSO DI STUDI");
+        }
+    }
+
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<CorsoMiniDTO> getAll() {
+
+        log.info("RECUPERO DI TUTTI I CORSI DI STUDIO (MINI)");
+
+        try {
+            List<CorsoMiniDTO> corsi = corsoDiStudiRepository.findAllMini();
+            log.info("CORSI DI STUDIO TROVATI (MINI): {}", corsi.size());
             return corsi;
         } catch (Exception e) {
-            log.error("ERRORE NEL RECUPERO DI TUTTI I CORSI DI STUDIO", e);
+            log.error("ERRORE NEL RECUPERO DI TUTTI I CORSI DI STUDIO (MINI)", e);
             throw new GetAllException(CorsoDiStudi.class.getSimpleName());
         }
     }
 
 
+
+    @Transactional(readOnly = true)
     @Override
     public List<CorsoMiniDTO> getMiniByDipartimento(Long dipartimentoId) {
+
         log.info("RECUPERO CORSI MINI PER DIPARTIMENTO_ID={}", dipartimentoId);
 
         try {
             List<CorsoMiniDTO> corsi = corsoDiStudiRepository.findMiniByDipartimentoId(dipartimentoId);
 
-            if (corsi.isEmpty()) {
-                log.info("NESSUN CORSO TROVATO PER DIPARTIMENTO_ID={}", dipartimentoId);
-
-                // SE VUOTO, CONTROLLO SE IL DIPARTIMENTO ESISTE (EVITO QUERY EXTRA QUANDO CI SONO RISULTATI)
-                boolean dipEsiste = dipartimentoRepository.existsById(dipartimentoId);
-                if (!dipEsiste) {
-                    log.error("DIPARTIMENTO NON TROVATO CON ID={}", dipartimentoId);
-                    throw new EntityNotFoundException("Dipartimento", "id", dipartimentoId);
-                }
-            } else {
+            if (!corsi.isEmpty()) {
                 log.info("TROVATI {} CORSI MINI PER DIPARTIMENTO_ID={}", corsi.size(), dipartimentoId);
+                return corsi;
+            }
+
+            log.info("NESSUN CORSO TROVATO PER DIPARTIMENTO_ID={}", dipartimentoId);
+
+            boolean dipEsiste = dipartimentoRepository.existsById(dipartimentoId);
+            if (!dipEsiste) {
+                log.error("DIPARTIMENTO NON TROVATO - ID={}", dipartimentoId);
+                throw new EntityNotFoundException("Dipartimento", "ID", dipartimentoId);
             }
 
             return corsi;
@@ -149,32 +204,35 @@ public class CorsoDiStudiServiceImpl implements CorsoDiStudiService {
         } catch (EntityNotFoundException ex) {
             throw ex;
         } catch (Exception ex) {
-            log.error("ERRORE DURANTE IL RECUPERO DEI CORSI MINI PER DIPARTIMENTO_ID={}", dipartimentoId, ex);
+            log.error("ERRORE RECUPERO CORSI MINI PER DIPARTIMENTO_ID={}", dipartimentoId, ex);
             throw new GetAllException("ERRORE DURANTE IL RECUPERO DEI CORSI DI STUDIO PER IL DIPARTIMENTO");
         }
     }
 
+
+    @Transactional(readOnly = true)
     @Override
     public CorsoDiStudiResponseDTO getCorsoByPersonaId(Long personaId) {
-        log.info("RECUPERO CORSO DI STUDI PER PERSONA_ID={}", personaId);
+        log.info("RECUPERO CORSO DI STUDI (DTO) PER PERSONA_ID={}", personaId);
 
         try {
-            CorsoDiStudi corso = corsoDiStudiRepository.findByPersonaId(personaId)
+            CorsoDiStudiResponseDTO dto = corsoDiStudiRepository.findDtoByPersonaId(personaId)
                     .orElseThrow(() -> {
-                        log.error("CORSO DI STUDI NON TROVATO PER PERSONA_ID={}", personaId);
-                        return new EntityNotFoundException("Persona", "id", personaId);
+                        log.error("CORSO DI STUDI NON TROVATO (DTO) PER PERSONA_ID={}", personaId);
+                        return new EntityNotFoundException("Persona", "ID", personaId);
                     });
 
-            log.info("CORSO DI STUDI TROVATO PER PERSONA_ID={}", personaId);
-            return new CorsoDiStudiResponseDTO(corso);
+            log.info("CORSO DI STUDI TROVATO (DTO) PER PERSONA_ID={}", personaId);
+            return dto;
 
         } catch (EntityNotFoundException ex) {
             throw ex;
         } catch (Exception ex) {
-            log.error("ERRORE DURANTE IL RECUPERO DEL CORSO DI STUDI PER PERSONA_ID={}", personaId, ex);
+            log.error("ERRORE RECUPERO CORSO DI STUDI (DTO) PER PERSONA_ID={}", personaId, ex);
             throw new GetAllException("ERRORE DURANTE IL RECUPERO DEL CORSO DI STUDI");
         }
     }
+
 
 
 }

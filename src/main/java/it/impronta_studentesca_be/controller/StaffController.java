@@ -35,8 +35,8 @@ public class StaffController {
     @PutMapping("/persona")
     public ResponseEntity<PersonaResponseDTO> aggiornaPersona(@RequestBody PersonaRequestDTO persona) throws AccessDeniedException {
         securityPersonaService.checkCanManagePersona(persona.getId());
-        PersonaResponseDTO response = adminImprontaService.aggiornaPersona(persona);
-        return ResponseEntity.ok(response);
+        adminImprontaService.aggiornaPersona(persona);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/persona/{personaId}")
@@ -52,6 +52,13 @@ public class StaffController {
         securityPersonaService.checkCanManagePersona(personaId);
         ImageUploadResponseDTO response = adminImprontaService.uploadFotoPersona(personaId, file);
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/persona/{personaId}/foto")
+    public ResponseEntity<ImageUploadResponseDTO> deleteFotoPersona(@PathVariable Long personaId) throws AccessDeniedException {
+        securityPersonaService.checkCanManagePersona(personaId);
+        adminImprontaService.deleteFotoPersona(personaId);
+        return ResponseEntity.ok().build();
     }
 
 

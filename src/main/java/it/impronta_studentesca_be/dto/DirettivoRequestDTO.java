@@ -4,6 +4,7 @@ import it.impronta_studentesca_be.constant.TipoDirettivo;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class DirettivoRequestDTO {
@@ -28,4 +29,5 @@ public class DirettivoRequestDTO {
      * Fine mandato (null = ancora in carica)
      */
     private LocalDate fineMandato;
+
 }

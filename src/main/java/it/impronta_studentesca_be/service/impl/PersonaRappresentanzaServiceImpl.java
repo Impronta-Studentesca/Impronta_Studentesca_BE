@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -34,32 +33,111 @@ public class PersonaRappresentanzaServiceImpl implements PersonaRappresentanzaSe
 
     @Override
     @Transactional
-    public PersonaRappresentanza create(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine) {
+    public void create(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine) {
+
+        log.info("INIZIO CREAZIONE RAPPRESENTANZA - PERSONA_ID={} - ORGANO_ID={} - DATA_INIZIO={} - DATA_FINE={}",
+                personaId, organoId, dataInizio, dataFine);
+
         try {
-            Optional<PersonaRappresentanza> present = personaRappresentanzaRepository.findByPersona_IdAndOrganoRappresentanza_Id(personaId, organoId);
-            if(present.isPresent() && present.get().isAttiva()){
-                log.error("ERRORE NELLA CREAZIONE DEL RAPPRESENTANTE: {}  INQUANTO E' GIA' PRESENTE", personaId);
-                throw new CreateException(PersonaRappresentanza.class.getSimpleName(), personaId.toString());
+            if (personaId == null || organoId == null) {
+                log.error("ERRORE CREAZIONE RAPPRESENTANZA - PERSONA_ID O ORGANO_ID NULL");
+                throw new IllegalArgumentException("PERSONA_ID/ORGANO_ID MANCANTI");
+            }
+
+            boolean esisteAttiva = personaRappresentanzaRepository.existsAttivaByPersonaIdAndOrganoId(
+                    personaId, organoId, LocalDate.now()
+            );
+
+            if (esisteAttiva) {
+                log.error("ERRORE CREAZIONE RAPPRESENTANZA - GIA' PRESENTE ATTIVA - PERSONA_ID={} - ORGANO_ID={}",
+                        personaId, organoId);
+                throw new CreateException(PersonaRappresentanza.class.getSimpleName(), String.valueOf(personaId));
             }
 
             Persona personaRef = personaRepository.getReferenceById(personaId);
             OrganoRappresentanza organoRef = organoRappresentanzaRepository.getReferenceById(organoId);
 
-            PersonaRappresentanza saved = null;
-            if(dataFine != null  && dataInizio != null) {
-                saved = personaRappresentanzaRepository.save(new PersonaRappresentanza(personaRef, organoRef, dataInizio, dataFine));
-            }else if (dataInizio != null) {
-                saved = personaRappresentanzaRepository.save(new PersonaRappresentanza(personaRef, organoRef, dataInizio));
-            }else {
-                saved = personaRappresentanzaRepository.save(new PersonaRappresentanza(personaRef, organoRef));
-            }
-            log.info("RAPPRESENTANTE CREATO CON ID: {}", saved.getId());
-            return saved;
+            PersonaRappresentanza entity = PersonaRappresentanza.builder()
+                    .persona(personaRef)
+                    .organoRappresentanza(organoRef)
+                    .dataInizio(dataInizio)
+                    .dataFine(dataFine)
+                    .build();
+
+            personaRappresentanzaRepository.save(entity);
+
+            log.info("FINE CREAZIONE RAPPRESENTANZA - OK - PERSONA_ID={} - ORGANO_ID={}", personaId, organoId);
+
+        } catch (CreateException e) {
+            throw e;
+
         } catch (Exception e) {
-            log.error("ERRORE NELLA CREAZIONE DEL RAPPRESENTANTE: {}, MESSAGGIO DI ERRORE: {}", personaId, e.getMessage());
-            throw new CreateException(PersonaRappresentanza.class.getSimpleName(), personaId.toString());
+            log.error("ERRORE CREAZIONE RAPPRESENTANZA - PERSONA_ID={} - ORGANO_ID={}", personaId, organoId, e);
+            throw new CreateException(PersonaRappresentanza.class.getSimpleName(), String.valueOf(personaId));
         }
     }
+
+
+    @Override
+    @Transactional
+    public void update(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine) {
+
+        if (personaId == null || organoId == null) {
+            log.warn("TENTATIVO DI UPDATE RAPPRESENTANZA CON PERSONA_ID O ORGANO_ID NULL");
+            throw new IllegalArgumentException("ID RAPPRESENTANZA MANCANTE PER UPDATE");
+        }
+
+        log.info("INIZIO AGGIORNAMENTO RAPPRESENTANZA - PERSONA_ID={} - ORGANO_ID={} - DATA_INIZIO={} - DATA_FINE={}",
+                personaId, organoId, dataInizio, dataFine);
+
+        try {
+            int updatedRows = personaRappresentanzaRepository.updateDateByPersonaIdAndOrganoId(
+                    personaId, organoId, dataInizio, dataFine
+            );
+
+            if (updatedRows == 0) {
+                log.error("RAPPRESENTANZA NON TROVATA PER UPDATE - PERSONA_ID={} - ORGANO_ID={}", personaId, organoId);
+                throw new EntityNotFoundException("RAPPRESENTANZA NON TROVATA - PERSONA_ID=" + personaId + " - ORGANO_ID=" + organoId);
+            }
+
+            log.info("FINE AGGIORNAMENTO RAPPRESENTANZA - OK - PERSONA_ID={} - ORGANO_ID={}", personaId, organoId);
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+
+        } catch (Exception e) {
+            log.error("ERRORE AGGIORNAMENTO RAPPRESENTANZA - PERSONA_ID={} - ORGANO_ID={}", personaId, organoId, e);
+            throw new UpdateException(PersonaRappresentanza.class.getSimpleName(), "PERSONA_ID", String.valueOf(personaId));
+        }
+    }
+
+
+
+    @Override
+    @Transactional
+    public PersonaRappresentanza delete(Long id) {
+
+        log.info("INIZIO ELIMINAZIONE RAPPRESENTANTE - ID={}", id);
+
+        try {
+            PersonaRappresentanza personaRappresentanza = personaRappresentanzaRepository.findById(id)
+                    .orElseThrow(() -> new EntityNotFoundException("RAPPRESENTANTE NON TROVATO - ID=" + id));
+
+            personaRappresentanzaRepository.deleteById(id);
+
+            log.info("FINE ELIMINAZIONE RAPPRESENTANTE - ID={}", id);
+            return personaRappresentanza;
+
+        } catch (EntityNotFoundException e) {
+            log.error("ERRORE ELIMINAZIONE RAPPRESENTANTE - NOT FOUND - ID={}", id, e);
+            throw e;
+
+        } catch (Exception e) {
+            log.error("ERRORE NELLA CANCELLAZIONE DEL RAPPRESENTANTE - ID={}", id, e);
+            throw new DeleteException(PersonaRappresentanza.class.getSimpleName(), id);
+        }
+    }
+
 
     @Override
     public void checkExistById(Long id) {
@@ -77,62 +155,8 @@ public class PersonaRappresentanzaServiceImpl implements PersonaRappresentanzaSe
         }
     }
 
-    @Override
-    @Transactional
-    public PersonaRappresentanza update(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine) {
-        if (personaId == null || organoId == null) {
-            log.warn("TENTATIVO DI UPDATE RAPPRESENTANTE CON PERSONA_ID O ORGANO_ID NULL");
-            throw new IllegalArgumentException("ID rappresentante mancante per update");
-        }
 
-        log.info("AGGIORNAMENTO RAPPRESENTANTE CON PERSONA_ID: {} E ORGANO_ID:{}", personaId, organoId);
 
-        try {
-            // Verifico che esista prima di aggiornare
-            checkExistByPersonaIdEOraganoId(personaId, organoId);
-
-            Persona personaRef = personaRepository.getReferenceById(personaId);
-            OrganoRappresentanza organoRef = organoRappresentanzaRepository.getReferenceById(organoId);
-
-            PersonaRappresentanza updated = null;
-            if(dataFine != null  && dataInizio != null) {
-                updated = personaRappresentanzaRepository.save(new PersonaRappresentanza(personaRef, organoRef, dataInizio, dataFine));
-            }else if (dataInizio != null) {
-                updated = personaRappresentanzaRepository.save(new PersonaRappresentanza(personaRef, organoRef, dataInizio));
-            }else {
-                updated = personaRappresentanzaRepository.save(new PersonaRappresentanza(personaRef, organoRef));
-            }
-            log.info("RAPPRESENTANTE AGGIORNATO CON ID: {}", updated.getId());
-            return updated;
-
-        } catch (EntityNotFoundException e) {
-            // la rilancio così com’è (è già quella “giusta”)
-            throw e;
-        } catch (Exception e) {
-            log.error("ERRORE NELL'AGGIORNAMENTO DEL RAPPRESENTANTE CON PERSONA_ID: {} E ORGANO_ID:{}", personaId, organoId);
-            throw new UpdateException(PersonaRappresentanza.class.getSimpleName(), "id", personaId.toString());
-        }
-
-    }
-
-    @Override
-    public PersonaRappresentanza delete(Long id) {
-        log.info("ELIMINAZIONE RAPPRESENTANTE CON ID: {}", id);
-
-        try {
-            // Verifico che esista prima di aggiornare
-            checkExistById(id);
-            PersonaRappresentanza personaRappresentanza = getById(id);
-            personaRappresentanzaRepository.deleteById(id);
-            log.info("RAPPRESENTANTE ELIMINATO CON ID: {}", id);
-            return personaRappresentanza;
-        } catch (EntityNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("ERRORE NELLA CANCELLAZIONE DEL RAPPRESENTANTE CON ID: {}", id, e);
-            throw new DeleteException(PersonaRappresentanza.class.getSimpleName(), id);
-        }
-    }
 
     @Override
     public PersonaRappresentanza getById(Long id) {
@@ -252,6 +276,8 @@ public class PersonaRappresentanzaServiceImpl implements PersonaRappresentanzaSe
             throw new GetAllException(PersonaRappresentanza.class.getSimpleName());
         }
     }
+
+
 }
 
 

@@ -5,10 +5,7 @@ import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.record.PersonaDirettivoMiniDTO;
 import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.*;
-import it.impronta_studentesca_be.exception.CreateException;
-import it.impronta_studentesca_be.exception.DeleteException;
-import it.impronta_studentesca_be.exception.EntityNotFoundException;
-import it.impronta_studentesca_be.exception.GetAllException;
+import it.impronta_studentesca_be.exception.*;
 import it.impronta_studentesca_be.repository.DirettivoRepository;
 import it.impronta_studentesca_be.repository.PersonaDirettivoRepository;
 import it.impronta_studentesca_be.repository.PersonaRepository;
@@ -41,56 +38,67 @@ public class PersonaDirettivoServiceImpl implements PersonaDirettivoService {
 
     @Override
     @Transactional
-    public PersonaDirettivo addPersonaToDirettivo(Long personaId, Long direttivoId, String ruoloNelDirettivo) {
+    public void addPersonaToDirettivo(Long personaId, Long direttivoId, String ruoloNelDirettivo) {
 
-        PersonaDirettivoId id = new PersonaDirettivoId(personaId, direttivoId);
-        log.info("AGGIUNZIONE DI PERSONA CON ID: {} AL DIRETTIVO CON ID: {}",
-                personaId, direttivoId);
+        log.info("INIZIO AGGIUNTA PERSONA A DIRETTIVO - PERSONA_ID={} - DIRETTIVO_ID={} - RUOLO_NEL_DIRETTIVO={}",
+                personaId, direttivoId, ruoloNelDirettivo);
+
         try {
+            PersonaDirettivoId id = new PersonaDirettivoId(personaId, direttivoId);
 
             Persona personaRef = personaRepository.getReferenceById(personaId);
-            Direttivo organoRef = direttivoRepository.getReferenceById(direttivoId);
-            PersonaDirettivo saved = personaDirettivoRepository.save(
+            Direttivo direttivoRef = direttivoRepository.getReferenceById(direttivoId);
+
+            personaDirettivoRepository.save(
                     PersonaDirettivo.builder()
                             .id(id)
                             .persona(personaRef)
-                            .direttivo(organoRef )
+                            .direttivo(direttivoRef)
                             .ruoloNelDirettivo(ruoloNelDirettivo)
-                            .build());
-            log.info("PERSONA_ID: {} AGGIUNTA AL DIRETTIVO_ID: {}", id.getPersonaId(), id.getDirettivoId());
-            return saved;
+                            .build()
+            );
+
+            log.info("FINE AGGIUNTA PERSONA A DIRETTIVO - PERSONA_ID={} - DIRETTIVO_ID={}", personaId, direttivoId);
+
         } catch (Exception e) {
-            log.error("ERRORE NELL'AGGIUNZIONE DELLA PERSONA_ID: {} DAL DIRETTIVO_ID: {}", id.getPersonaId(), id.getDirettivoId(), e);
-            throw new CreateException(PersonaDirettivo.class.getSimpleName(), "Direttivo_Id: " +  id.getDirettivoId());
+            log.error("ERRORE AGGIUNTA PERSONA A DIRETTIVO - PERSONA_ID={} - DIRETTIVO_ID={}", personaId, direttivoId, e);
+            throw new CreateException(PersonaDirettivo.class.getSimpleName(), "DIRETTIVO_ID: " + direttivoId);
         }
     }
 
-    @Transactional
+
+
     @Override
-    public PersonaDirettivo updatePersonaToDirettivo(Long personaId, Long direttivoId, String ruoloNelDirettivo) {
+    @Transactional
+    public void updatePersonaToDirettivo(Long personaId, Long direttivoId, String ruoloNelDirettivo) {
 
-        PersonaDirettivoId id = new PersonaDirettivoId(personaId, direttivoId);
-        log.info("MODIFICA DI PERSONA CON ID: {} AL DIRETTIVO CON ID: {}",
-                personaId, direttivoId);
+        log.info("INIZIO MODIFICA PERSONA IN DIRETTIVO - PERSONA_ID={} - DIRETTIVO_ID={} - RUOLO_NEL_DIRETTIVO={}",
+                personaId, direttivoId, ruoloNelDirettivo);
+
         try {
+            if (personaId == null || direttivoId == null) {
+                log.warn("TENTATIVO MODIFICA PERSONA IN DIRETTIVO CON ID NULL - PERSONA_ID={} - DIRETTIVO_ID={}", personaId, direttivoId);
+                throw new IllegalArgumentException("PERSONA_ID/DIRETTIVO_ID MANCANTI");
+            }
 
-            checkExistById(new PersonaDirettivoId(personaId, direttivoId));
-            Persona personaRef = personaRepository.getReferenceById(personaId);
-            Direttivo organoRef = direttivoRepository.getReferenceById(direttivoId);
-            PersonaDirettivo saved = personaDirettivoRepository.save(
-                    PersonaDirettivo.builder()
-                            .id(id)
-                            .persona(personaRef)
-                            .direttivo(organoRef )
-                            .ruoloNelDirettivo(ruoloNelDirettivo)
-                            .build());
-            log.info("PERSONA_ID: {} MODIFICATA NEL DIRETTIVO_ID: {}", id.getPersonaId(), id.getDirettivoId());
-            return saved;
+            int updatedRows = personaDirettivoRepository.updateRuoloNelDirettivo(personaId, direttivoId, ruoloNelDirettivo);
+
+            if (updatedRows == 0) {
+                log.error("PERSONA NON PRESENTE NEL DIRETTIVO PER UPDATE - PERSONA_ID={} - DIRETTIVO_ID={}", personaId, direttivoId);
+                throw new EntityNotFoundException("PERSONA_DIRETTIVO NON TROVATO - PERSONA_ID=" + personaId + " - DIRETTIVO_ID=" + direttivoId);
+            }
+
+            log.info("FINE MODIFICA PERSONA IN DIRETTIVO - PERSONA_ID={} - DIRETTIVO_ID={}", personaId, direttivoId);
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+
         } catch (Exception e) {
-            log.error("ERRORE NELL'AGGIUNZIONE DELLA PERSONA_ID: {} DAL DIRETTIVO_ID: {}", id.getPersonaId(), id.getDirettivoId(), e);
-            throw new CreateException(PersonaDirettivo.class.getSimpleName(), "Direttivo_Id: " +  id.getDirettivoId());
+            log.error("ERRORE MODIFICA PERSONA IN DIRETTIVO - PERSONA_ID={} - DIRETTIVO_ID={}", personaId, direttivoId, e);
+            throw new UpdateException(PersonaDirettivo.class.getSimpleName(), "DIRETTIVO_ID", String.valueOf(direttivoId));
         }
     }
+
 
     @Override
     public void removePersonaFromDirettivo(Long personaId, Long direttivoId) {
@@ -98,8 +106,6 @@ public class PersonaDirettivoServiceImpl implements PersonaDirettivoService {
         PersonaDirettivoId id = new PersonaDirettivoId(personaId, direttivoId);
 
         try {
-            // Verifico che esista prima di aggiornare
-            checkExistById(id);
 
             personaDirettivoRepository.deleteById(id);
             log.info("PERSONA_ID: {} RIMOSSA DAL DIRETTIVO_ID: {}", id.getPersonaId(), id.getDirettivoId());
@@ -241,18 +247,26 @@ public class PersonaDirettivoServiceImpl implements PersonaDirettivoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PersonaMiniDTO> getPersonaByRuoloNotInDirettivo(Roles ruolo, Long direttivoId) {
-        log.info("RECUPERO PERSONE CON RUOLO: {} NON PRESENTI NEL DIRETTIVO: {}", ruolo.name(), direttivoId);
 
-        try{
+        log.info("INIZIO RECUPERO PERSONE CON RUOLO NON PRESENTI NEL DIRETTIVO - RUOLO={} - DIRETTIVO_ID={}",
+                ruolo, direttivoId);
+
+        try {
             List<PersonaMiniDTO> persone = personaRepository.findMiniByRuoloNotInDirettivo(ruolo, direttivoId);
-            log.info("PERSONE TROVATE: {}", persone.size());
-            return persone;
-        }catch(Exception ex){
-            log.error("IMPOSSIBILE RECUPERARE PERSONE CON RUOLO: {} NON PRESENTI NEL DIRETTIVO: {}", ruolo.name(), direttivoId);
+
+            log.info("FINE RECUPERO PERSONE CON RUOLO NON PRESENTI NEL DIRETTIVO - RUOLO={} - DIRETTIVO_ID={} - TROVATE={}",
+                    ruolo, direttivoId, persone != null ? persone.size() : 0);
+
+            return persone != null ? persone : List.of();
+
+        } catch (Exception ex) {
+            log.error("ERRORE RECUPERO PERSONE CON RUOLO NON PRESENTI NEL DIRETTIVO - RUOLO={} - DIRETTIVO_ID={}",
+                    ruolo, direttivoId, ex);
             throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLE PERSONE");
         }
-
     }
+
 
 }

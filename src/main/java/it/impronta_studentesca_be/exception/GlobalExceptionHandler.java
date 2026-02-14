@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -45,6 +46,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UpdateException.class)
     public ResponseEntity<ApiError> handleUpdate(UpdateException ex,
+                                                 HttpServletRequest request) {
+        ApiError body = buildError(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiError> handleUpdate(BadCredentialsException ex,
                                                  HttpServletRequest request) {
         ApiError body = buildError(
                 HttpStatus.BAD_REQUEST,

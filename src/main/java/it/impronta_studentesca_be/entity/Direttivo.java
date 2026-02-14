@@ -42,15 +42,6 @@ public class Direttivo {
     @Column(name = "fine_mandato")
     private LocalDate fineMandato;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
-    }
 
     /**
      * Campo derivato: true se il direttivo è attualmente in carica.

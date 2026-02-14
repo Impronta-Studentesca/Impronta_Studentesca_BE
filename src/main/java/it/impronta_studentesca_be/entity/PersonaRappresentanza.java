@@ -95,11 +95,12 @@ public class PersonaRappresentanza {
     }
 
 
-    public boolean isAttiva(){
-
+    public boolean isAttiva() {
         LocalDate today = LocalDate.now();
-        return (this.getDataInizio() != null && this.getDataInizio().isAfter(today)) && (this.getDataFine() == null || this.getDataFine().isBefore(today));
+        return (dataInizio != null && !dataInizio.isAfter(today))
+                && (dataFine == null || !dataFine.isBefore(today));
     }
+
 
 
 }

@@ -1,6 +1,5 @@
 package it.impronta_studentesca_be.controller;
 
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import it.impronta_studentesca_be.constant.ApiPath;
 import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.dto.*;
@@ -11,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -29,9 +27,9 @@ public class AdminController {
     //PERSONA
 
     @PostMapping("/persona")
-    public ResponseEntity<PersonaResponseDTO> creaPersona(@RequestBody PersonaRequestDTO persona) {
-        PersonaResponseDTO response = adminImprontaService.creaPersona(persona);
-        return ResponseEntity.ok(response);
+    public ResponseEntity creaPersona(@RequestBody PersonaRequestDTO persona) {
+        adminImprontaService.creaPersona(persona);
+        return ResponseEntity.ok().build();
     }
 
 
@@ -109,6 +107,15 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/" + ApiPath.PERSONA_PATH + "/{personaId}/" + ApiPath.RAPPRESENTANTE_PATH)
+    public ResponseEntity<Void> delete(@PathVariable Long personaId,
+                                       @RequestParam String nome) {
+
+        adminImprontaService.eliminaPersonaRappresentanza(personaId, nome);
+
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/" + ApiPath.ORGANI_PATH)
     public ResponseEntity<List<OrganoRappresentanzaDTO>> getOrganoAll(
     ) {
@@ -118,15 +125,15 @@ public class AdminController {
     // DIPARTIMENTI
 
     @PostMapping("/dipartimento")
-    public ResponseEntity<DipartimentoResponseDTO> creaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
-        DipartimentoResponseDTO response = adminImprontaService.creaDipartimento(dipartimento);
-        return ResponseEntity.ok(response);
+    public ResponseEntity creaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
+        adminImprontaService.creaDipartimento(dipartimento);
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/dipartimento")
-    public ResponseEntity<DipartimentoResponseDTO> modificaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
-        DipartimentoResponseDTO response = adminImprontaService.modificaDipartimento(dipartimento);
-        return ResponseEntity.ok(response);
+    public ResponseEntity modificaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
+        adminImprontaService.modificaDipartimento(dipartimento);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/dipartimento")
@@ -138,15 +145,15 @@ public class AdminController {
     // CORSI DI STUDIO
 
     @PostMapping("/corso")
-    public ResponseEntity<CorsoDiStudiResponseDTO> creaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
-        CorsoDiStudiResponseDTO response = adminImprontaService.creaCorso(corso);
-        return ResponseEntity.ok(response);
+    public ResponseEntity creaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
+         adminImprontaService.creaCorso(corso);
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/corso")
-    public ResponseEntity<CorsoDiStudiResponseDTO> modificaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
-        CorsoDiStudiResponseDTO response = adminImprontaService.modificaCorso(corso);
-        return ResponseEntity.ok(response);
+    public ResponseEntity modificaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
+        adminImprontaService.modificaCorso(corso);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/corso")
@@ -158,9 +165,9 @@ public class AdminController {
     // UFFICI
 
     @PostMapping("/ufficio")
-    public ResponseEntity<UfficioResponseDTO> creaUfficio(@RequestBody UfficioRequestDTO ufficio) {
-        UfficioResponseDTO response = adminImprontaService.creaUfficio(ufficio);
-        return ResponseEntity.ok(response);
+    public ResponseEntity creaUfficio(@RequestBody UfficioRequestDTO ufficio) {
+        adminImprontaService.creaUfficio(ufficio);
+        return ResponseEntity.ok().build();
     }
 
 

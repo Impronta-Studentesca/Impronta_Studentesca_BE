@@ -31,7 +31,6 @@ public class DirettivoResponseDTO {
 
     private LocalDate fineMandato;
 
-    private LocalDateTime createdAt;
 
     /**
      * True se il direttivo è attualmente in carica.
@@ -44,7 +43,6 @@ public class DirettivoResponseDTO {
         this.dipartimentoId = direttivo.getDipartimento() != null ? direttivo.getDipartimento().getId() : null;
         this.inizioMandato = direttivo.getInizioMandato();
         this.fineMandato = direttivo.getFineMandato();
-        this.createdAt = direttivo.getCreatedAt();
         this.attivo = direttivo.isAttivo();
     }
 }

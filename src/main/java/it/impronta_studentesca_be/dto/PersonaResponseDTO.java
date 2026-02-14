@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -52,6 +53,10 @@ public class PersonaResponseDTO {
         this.id = id;
         this.nome = nome;
         this.cognome = cognome;
+        this.ruoli = Collections.emptySet();
+        this.corsoDiStudi = null;
+        this.annoCorso = null;
+        this.ufficio = null;
     }
 
 }

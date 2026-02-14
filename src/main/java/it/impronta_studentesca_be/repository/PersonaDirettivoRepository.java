@@ -7,6 +7,7 @@ import it.impronta_studentesca_be.entity.PersonaDirettivo;
 import it.impronta_studentesca_be.entity.PersonaDirettivoId;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -79,5 +80,18 @@ public interface PersonaDirettivoRepository extends JpaRepository<PersonaDiretti
     List<PersonaDirettivoRow> findRuoliDirettivoGeneraleAttiviByPersonaIds(@Param("personaIds") List<Long> personaIds,
                                                  @Param("tipo") TipoDirettivo tipo,
                                                  @Param("today") LocalDate today);
+
+    boolean existsByPersona_IdAndDirettivo_Tipo(Long personaId, TipoDirettivo tipo);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+    update PersonaDirettivo pd
+    set pd.ruoloNelDirettivo = :ruolo
+    where pd.id.personaId = :personaId
+      and pd.id.direttivoId = :direttivoId
+""")
+    int updateRuoloNelDirettivo(@Param("personaId") Long personaId,
+                                @Param("direttivoId") Long direttivoId,
+                                @Param("ruolo") String ruolo);
 
 }

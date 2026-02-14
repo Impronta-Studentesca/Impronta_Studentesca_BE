@@ -4,6 +4,8 @@ import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.dto.record.CorsoMiniDTO;
+import it.impronta_studentesca_be.dto.record.DipartimentoResponseDTO;
+import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
 import it.impronta_studentesca_be.entity.Ruolo;
@@ -71,42 +73,25 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     /// INIZIO DIPARTIMENTI//////////////////////////////////////////////////////
     /// //////////////////////////////////////////////////////////
 
-    /*
-    TESTATO 03/12/2025 FUNZIONA
-     */
     @Override
     public List<DipartimentoResponseDTO> getDipartimenti() {
-
-        return dipartimentoService.getAll().stream().map(DipartimentoResponseDTO::new).collect(Collectors.toList());
-
+        return dipartimentoService.getAllDto();
     }
 
-    /*
-    TESTATO 03/12/2025 FUNZIONA
-     */
     @Override
-    public DipartimentoResponseDTO getDipartimentoById(Long dipartimentoId) {
-        return new DipartimentoResponseDTO(dipartimentoService.getById(dipartimentoId));
+    public DipartimentoResponseDTO getDipartimentoById(java.lang.Long dipartimentoId) {
+        return dipartimentoService.getDtoById(dipartimentoId);
     }
 
-    /*
-    TESTATO 03/12/2025 FUNZIONA
-     */
     @Override
-    public DipartimentoResponseDTO getDipartimentoByCorsoId(Long corsoId) {
-
-        return new DipartimentoResponseDTO(dipartimentoService.getByCorsoId(corsoId));
-
+    public DipartimentoResponseDTO getDipartimentoByCorsoId(java.lang.Long corsoId) {
+        return dipartimentoService.getDtoByCorsoId(corsoId);
     }
 
-    /*
-    TESTATO 05/12/2025 FUNZIONA
-     */
     @Override
-    public DipartimentoResponseDTO getDipartimentoByPersonaId(Long personaId) {
-        return new DipartimentoResponseDTO(dipartimentoService.getDipartimentoByPersonaId(personaId));
+    public DipartimentoResponseDTO getDipartimentoByPersonaId(java.lang.Long personaId) {
+        return dipartimentoService.getDtoByPersonaId(personaId);
     }
-
 
     ////////////////////////////////////////////////////////////////////////////
     /// FINE DIPARTIMENTI//////////////////////////////////////////////////////
@@ -116,27 +101,18 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     /// INIZIO CORSI//////////////////////////////////////////////////////
     /// //////////////////////////////////////////////////////////
 
-    /*
-    TESTATO 03/12/2025 FUNZIONA
-     */
     @Override
-    public List<CorsoMiniDTO> getCorsiByDipartimento(Long dipartimentoId) {
+    public List<CorsoMiniDTO> getCorsiByDipartimento(java.lang.Long dipartimentoId) {
         return corsoDiStudiService.getMiniByDipartimento(dipartimentoId);
     }
 
-    /*
-    TESTATO 03/12/2025 FUNZIONA
-     */
     @Override
-    public CorsoDiStudiResponseDTO getCorsoById(Long corsoId) {
-        return new CorsoDiStudiResponseDTO(corsoDiStudiService.getById(corsoId));
+    public CorsoDiStudiResponseDTO getCorsoById(java.lang.Long corsoId) {
+        return corsoDiStudiService.getById(corsoId);
     }
 
-    /*
-    TESTATO 04/12/2025 FUNZIONA
-     */
     @Override
-    public CorsoDiStudiResponseDTO getCorsoByPersonaId(Long personaId) {
+    public CorsoDiStudiResponseDTO getCorsoByPersonaId(java.lang.Long personaId) {
         return corsoDiStudiService.getCorsoByPersonaId(personaId);
     }
 
@@ -149,10 +125,9 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     /// //////////////////////////////////////////////////////////
     @Override
     public List<UfficioResponseDTO> getUffici() {
-
-        return ufficioService.getAll().stream().map(UfficioResponseDTO::new).collect(Collectors.toList());
-
+        return ufficioService.getAllDto();
     }
+
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -166,7 +141,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
 
     @Override
-    public PersonaPhotoResponseDTO getFotoPersona(Long personaId) {
+    public PersonaPhotoResponseDTO getFotoPersona(java.lang.Long personaId) {
         Persona persona = personaService.getById(personaId);
 
         PersonaPhotoResponseDTO dto = new PersonaPhotoResponseDTO();
@@ -177,36 +152,21 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
         return dto;
     }
 
-    /*
-    TESTATO 04/12/2025 FUNZIONA
-     */
+
     @Override
-    public PersonaResponseDTO getPersonaById(Long personaId) {
+    public PersonaResponseDTO getPersonaById(java.lang.Long personaId) {
         return new PersonaResponseDTO(personaService.getById(personaId));
     }
 
 
     @Override
-    public List<PersonaResponseDTO> getStaff() {
-
-        return personaService.getStaff().stream().map(PersonaResponseDTO::new).collect(Collectors.toList());
-
+    public List<PersonaMiniDTO> getPersoneByDipartimento(Long dipartimentoId) {
+        return personaService.getMiniByDipartimento(dipartimentoId);
     }
 
-    /*
-    TESTATO 05/12/2025 FUNZIONA
-     */
     @Override
-    public List<PersonaResponseDTO> getPersoneByDipartimento(Long dipartimentoId) {
-        return personaService.getByDipartimento(dipartimentoId).stream().map(PersonaResponseDTO::new).collect(Collectors.toList());
-    }
-
-    /*
-    TESTATO 05/12/2025 FUNZIONA
-     */
-    @Override
-    public List<PersonaResponseDTO> getPersoneByCorso(Long corsoId) {
-        return personaService.getByCorsoDiStudi(corsoId).stream().map(PersonaResponseDTO::new).collect(Collectors.toList());
+    public List<PersonaMiniDTO> getPersoneByCorso(Long corsoId) {
+        return personaService.getMiniByCorso(corsoId);
     }
 
 
@@ -219,17 +179,11 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     /// //////////////////////////////////////////////////////////
 
 
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
     @Override
     public OrganoRappresentanzaDTO getOrganoById(Long organoId) {
         return new OrganoRappresentanzaDTO(organoRappresentanzaService.getById(organoId));
     }
 
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
     @Override
     public List<OrganoRappresentanzaDTO> getOrganoAll() {
         return organoRappresentanzaService.getAll().stream().map(OrganoRappresentanzaDTO::new).collect(Collectors.toList());
@@ -350,7 +304,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     TESTATO 06/12/2025 FUNZIONA
      */
     @Override
-    public List<PersonaDirettivoResponseDTO> getMembriDirettivo(Long direttivoId) {
+    public List<PersonaDirettivoResponseDTO> getMembriDirettivo(java.lang.Long direttivoId) {
         direttivoService.checkExistById(direttivoId);
 
        // return personaDirettivoService.getByDirettivo(direttivoId).stream().map(PersonaDirettivoResponseDTO::new).collect(Collectors.toList());
@@ -373,7 +327,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     TESTATO 06/12/2025 FUNZIONA
      */
     @Override
-    public DirettivoResponseDTO getDirettivoById(Long personaId) {
+    public DirettivoResponseDTO getDirettivoById(java.lang.Long personaId) {
         return new DirettivoResponseDTO(direttivoService.getById(personaId));
     }
 
@@ -399,7 +353,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
     //TODO: QUANDO CI SARANNO DIRETTIVI DIPARTIMENTALI
     @Override
-    public List<DirettivoResponseDTO> getDirettiviByDipartimento(Long dipartimentoId) {
+    public List<DirettivoResponseDTO> getDirettiviByDipartimento(java.lang.Long dipartimentoId) {
 
         return direttivoService.getByDipartimento(dipartimentoId).stream().map(DirettivoResponseDTO::new).collect(Collectors.toList());
 
@@ -434,7 +388,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     /// //////////////////////////////////////////////////////////
 
     @Override
-    public void creaPassword(Long personaId, String password) {
+    public void creaPassword(java.lang.Long personaId, java.lang.String password) {
 
         // recupero la persona
         Persona persona = personaService.getById(personaId);
@@ -458,7 +412,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
 
     @Override
-    public void modificaPassword(Long personaId, String password) {
+    public void modificaPassword(java.lang.Long personaId, java.lang.String password) {
 
         // recupero la persona
         Persona persona = personaService.getById(personaId);
@@ -513,7 +467,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
             }
             Persona persona = userDetails.getPersona();
 
-            Set<String> ruoli = persona.getRuoli().stream()
+            Set<java.lang.String> ruoli = persona.getRuoli().stream()
                     .map(Ruolo::getNome)                 // enum Roles
                     .map(Roles::getAuthority)          // "DIRETTIVO", "USER", ...
                     .collect(Collectors.toSet());
@@ -530,7 +484,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
         } catch (BadCredentialsException ex) {
             log.error("Tentativo di login fallito per email {}", dto.getEmail());
-            throw new BadCredentialsException("IMPOSSIBILE AUTENTICARSI");
+            throw new BadCredentialsException("Credenziali errate ");
         }
     }
 

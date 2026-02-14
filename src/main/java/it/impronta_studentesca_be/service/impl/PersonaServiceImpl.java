@@ -10,6 +10,7 @@ import it.impronta_studentesca_be.service.PersonaService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
@@ -27,20 +28,29 @@ public class PersonaServiceImpl implements PersonaService {
     private RuoloServiceImpl ruoloService;
 
     @Override
-    public Persona create(Persona persona) {
+    @Transactional
+    public void create(Persona persona) {
+
+        log.info("INIZIO CREAZIONE PERSONA - EMAIL={}", persona != null ? persona.getEmail() : null);
 
         try {
+            if (persona == null) {
+                log.error("ERRORE CREAZIONE PERSONA - BODY NULL");
+                throw new IllegalArgumentException("PERSONA NULL");
+            }
+
             Persona saved = personaRepository.save(persona);
-            log.info("PERSONA CREATA CON ID: {}", saved.getId());
-            return saved;
+
+            log.info("FINE CREAZIONE PERSONA - OK - ID={}", saved.getId());
+
         } catch (Exception e) {
-            log.error("ERRORE NELLA CREAZIONE DELLA PERSONA: {}, MESSAGGIO DI ERRORE: {}", persona, e.getMessage());
-            throw new CreateException(Persona.class.getSimpleName(), persona.getNome());
+            log.error("ERRORE CREAZIONE PERSONA - EMAIL={}", persona != null ? persona.getEmail() : null, e);
+            throw new CreateException(Persona.class.getSimpleName(),
+                    persona != null ? persona.getNome() : "NULL");
         }
-
-
-
     }
+
+
 
     private Persona mergeNotNull(Persona db, Persona persona) {
         if (persona == null) return db;
@@ -96,52 +106,68 @@ public class PersonaServiceImpl implements PersonaService {
 
 
     @Override
-    public Persona update(Persona persona) {
-        if (persona.getId() == null) {
-            log.warn("TENTATIVO DI UPDATE PERSONA SENZA ID: {}", persona);
-            throw new IllegalArgumentException("ID persona mancante per update");
+    @Transactional
+    public void update(Persona persona) {
+
+        if (persona == null || persona.getId() == null) {
+            log.warn("TENTATIVO DI UPDATE PERSONA SENZA ID");
+            throw new IllegalArgumentException("ID PERSONA MANCANTE PER UPDATE");
         }
+
         Long id = persona.getId();
-        log.info("AGGIORNAMENTO PERSONA CON ID: {}", id);
+        log.info("INIZIO AGGIORNAMENTO PERSONA - ID={}", id);
 
         try {
-            // Verifico che esista prima di aggiornare
-            checkExistById(id);
+            Persona db = personaRepository.findById(id)
+                    .orElseThrow(() -> {
+                        log.error("PERSONA NON TROVATA - ID={}", id);
+                        return new EntityNotFoundException(Persona.class.getSimpleName(), "ID", id);
+                    });
 
-            Persona db = getById(id);
+            mergeNotNull(db, persona);
 
-            Persona updated = personaRepository.save(mergeNotNull(db, persona));
-            log.info("PERSONA AGGIORNATA CON ID: {}", updated.getId());
-            return updated;
+            log.info("FINE AGGIORNAMENTO PERSONA - OK - ID={}", id);
 
         } catch (EntityNotFoundException e) {
-            // la rilancio così com’è (è già quella “giusta”)
             throw e;
+
         } catch (Exception e) {
-            log.error("ERRORE NELL'AGGIORNAMENTO DELLA PERSONA CON ID: {}", id, e);
-            throw new UpdateException(Persona.class.getSimpleName(), "id", id);
+            log.error("ERRORE AGGIORNAMENTO PERSONA - ID={}", id, e);
+            throw new UpdateException(Persona.class.getSimpleName(), "ID", String.valueOf(id));
         }
     }
 
+
     @Override
+    @Transactional
     public void delete(Long id) {
 
-        log.info("ELIMINAZIONE PERSONA CON ID: {}", id);
+        log.info("INIZIO ELIMINAZIONE PERSONA - ID={}", id);
 
         try {
-            // Verifico che esista prima di aggiornare
-            checkExistById(id);
+            if (id == null) {
+                log.warn("TENTATIVO DI DELETE PERSONA SENZA ID");
+                throw new IllegalArgumentException("ID PERSONA MANCANTE PER DELETE");
+            }
 
-            personaRepository.deleteById(id);
-            log.info("PERSONA ELIMINATA CON ID: {}", id);
+            int deleted = personaRepository.deleteByIdReturningCount(id);
+
+            if (deleted == 0) {
+                log.error("PERSONA NON TROVATA PER DELETE - ID={}", id);
+                throw new EntityNotFoundException(Persona.class.getSimpleName(), "ID", id);
+            }
+
+            log.info("FINE ELIMINAZIONE PERSONA - ID={}", id);
 
         } catch (EntityNotFoundException e) {
             throw e;
+
         } catch (Exception e) {
-            log.error("ERRORE NELLA CANCELLAZIONE DELLA PERSONA CON ID: {}", id, e);
+            log.error("ERRORE ELIMINAZIONE PERSONA - ID={}", id, e);
             throw new DeleteException(Persona.class.getSimpleName(), id);
         }
     }
+
 
 
     @Override
@@ -152,9 +178,7 @@ public class PersonaServiceImpl implements PersonaService {
         }
     }
 
-    /*
-    TESTATO 04/12/2025 FUNZIONA
-     */
+
     @Override
     public Persona getById(Long id) {
         log.info("RECUPERO PERSONA CON ID: {}", id);
@@ -168,6 +192,53 @@ public class PersonaServiceImpl implements PersonaService {
                     );
                 });
     }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<PersonaMiniDTO> getMiniByCorso(Long corsoId) {
+
+        log.info("RECUPERO PERSONE MINI PER CORSO_ID={}", corsoId);
+
+        try {
+            List<PersonaMiniDTO> persone = personaRepository.findMiniByCorsoId(corsoId);
+
+            if (persone.isEmpty()) {
+                log.info("NESSUNA PERSONA TROVATA PER CORSO_ID={}", corsoId);
+            } else {
+                log.info("TROVATE {} PERSONE MINI PER CORSO_ID={}", persone.size(), corsoId);
+            }
+
+            return persone;
+
+        } catch (Exception ex) {
+            log.error("ERRORE RECUPERO PERSONE MINI PER CORSO_ID={}", corsoId, ex);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLE PERSONE PER CORSO DI STUDI");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<PersonaMiniDTO> getMiniByDipartimento(Long dipartimentoId) {
+
+        log.info("RECUPERO PERSONE MINI PER DIPARTIMENTO_ID={}", dipartimentoId);
+
+        try {
+            List<PersonaMiniDTO> persone = personaRepository.findMiniByDipartimentoId(dipartimentoId);
+
+            if (persone.isEmpty()) {
+                log.info("NESSUNA PERSONA TROVATA PER DIPARTIMENTO_ID={}", dipartimentoId);
+            } else {
+                log.info("TROVATE {} PERSONE MINI PER DIPARTIMENTO_ID={}", persone.size(), dipartimentoId);
+            }
+
+            return persone;
+
+        } catch (Exception ex) {
+            log.error("ERRORE RECUPERO PERSONE MINI PER DIPARTIMENTO_ID={}", dipartimentoId, ex);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLE PERSONE PER DIPARTIMENTO");
+        }
+    }
+
 
     @Override
     public PersonaMiniDTO getPersonaLiteById(Long id) {
@@ -183,9 +254,7 @@ public class PersonaServiceImpl implements PersonaService {
                 });
     }
 
-    /*
-    TESTATO 03/12/2025 FUNZIONA
-     */
+
     @Override
     public Persona getByEmail(String email) {
         log.info("RECUPERO PERSONA CON EMAIL: {}", email);
@@ -258,133 +327,75 @@ public class PersonaServiceImpl implements PersonaService {
         }
     }
 
-    /*
-    TESTATO 05/12/2025 FUNZIONA
-     */
-    @Override
-    public List<Persona> getByCorsoDiStudi(Long corsoId) {
-        log.info("RECUPERO PERSONE PER UFFICIO_ID={}", corsoId);
 
-        try {
-
-            // 2) Recupero persone di studio
-            List<Persona> persone =  personaRepository.findByCorsoDiStudi_Id(corsoId);
-
-            if (persone.isEmpty()) {
-                log.info("NESSUNA PERSONA TROVATA PER CORSO_ID={}", corsoId);
-            } else {
-                log.info("TROVATI {} PERSONE PER CORSO_ID={}", persone.size(), corsoId  );
-            }
-
-            return persone;
-
-        } catch (EntityNotFoundException ex) {
-            // La rilanciamo così viene gestita dal GlobalExceptionHandler con 404
-            throw ex;
-        } catch (Exception ex) {
-            // Qualsiasi altro errore inaspettato
-            log.error("ERRORE DURANTE IL RECUPERO DELLE PERSONE PER CORSO_ID={}", corsoId, ex);
-            throw new GetAllException(
-                    "Errore durante il recupero delle persone per corso di studi" + Persona.class.getSimpleName()
-            );
-        }
-    }
-
-    /*
-    TESTATO 05/12/2025 FUNZIONA
-     */
-    @Override
-    public List<Persona> getByDipartimento(Long dipartimentoId) {
-        log.info("RECUPERO PERSONE PER DIPARTIMENTO_ID={}", dipartimentoId);
-
-        try {
-
-            // 2) Recupero persone di studio
-            List<Persona> persone =  personaRepository.findByCorsoDiStudi_Dipartimento_Id(dipartimentoId);
-
-            if (persone.isEmpty()) {
-                log.info("NESSUNA PERSONA TROVATA PER DIPARTIMENTO_ID={}", dipartimentoId);
-            } else {
-                log.info("TROVATI {} PERSONE PER DIPARTIMENTO_ID={}", persone.size(), dipartimentoId  );
-            }
-
-            return persone;
-
-        } catch (EntityNotFoundException ex) {
-            // La rilanciamo così viene gestita dal GlobalExceptionHandler con 404
-            throw ex;
-        } catch (Exception ex) {
-            // Qualsiasi altro errore inaspettato
-            log.error("ERRORE DURANTE IL RECUPERO DELLE PERSONE PER DIPARTIMENTO_ID={}", dipartimentoId, ex);
-            throw new GetAllException(
-                    "Errore durante il recupero delle persone per dipartimento" + Persona.class.getSimpleName()
-            );
-        }
-    }
 
     @Override
+    @Transactional
     public Set<Ruolo> aggiungiRuolo(Long personaId, Roles nome) {
 
-        log.info("RICHIESTA AGGIUNTA RUOLO: PERSONA_ID={}, RUOLO={}", personaId, nome);
+        log.info("INIZIO AGGIUNTA RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome);
 
-        Persona persona = getById(personaId);
+        try {
+            int insertedRows = personaRepository.insertRuoloToPersonaByNome(personaId, nome.name());
 
-        Ruolo ruolo = ruoloService.getByNome(nome);
-        log.info("RUOLO TROVATO: RUOLO_NOME={}, RUOLO_ID={}", ruolo.getNome(), ruolo.getId());
+            if (insertedRows > 0) {
+                log.info("RUOLO AGGIUNTO CON SUCCESSO - PERSONA_ID={} - RUOLO={}", personaId, nome);
+            } else {
+                log.warn("NESSUNA MODIFICA IN AGGIUNTA RUOLO (GIA' PRESENTE O RUOLO NON TROVATO) - PERSONA_ID={} - RUOLO={}",
+                        personaId, nome);
+            }
 
-        if (persona.getRuoli() == null) {
-            log.warn("SET RUOLI NULLO: PERSONA_ID={}, INIZIALIZZO SET VUOTO", personaId);
-            persona.setRuoli(new java.util.HashSet<>());
-        }
+            Set<Ruolo> ruoli = personaRepository.findRuoliByPersonaId(personaId);
 
-        if (!persona.getRuoli().contains(ruolo)) {
-            persona.getRuoli().add(ruolo);
-            Persona updated = update(persona);
-
-            log.info("RUOLO AGGIUNTO CON SUCCESSO: PERSONA_ID={}, RUOLO={}", personaId, nome);
-            log.debug("RUOLI DOPO AGGIUNTA: PERSONA_ID={}, RUOLI={}",
+            log.debug("RUOLI DOPO AGGIUNTA - PERSONA_ID={} - RUOLI={}",
                     personaId,
-                    updated.getRuoli() != null ? updated.getRuoli().stream().map(Ruolo::getNome).toList() : "NULL"
+                    ruoli != null ? ruoli.stream().map(Ruolo::getNome).toList() : "NULL"
             );
 
-            return updated.getRuoli();
-        }
+            log.info("FINE AGGIUNTA RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome);
 
-        log.error("RUOLO GIA' PRESENTE: NESSUNA MODIFICA. PERSONA_ID={}, RUOLO={}", personaId, nome);
-        return persona.getRuoli();
+            return ruoli != null ? ruoli : java.util.Collections.emptySet();
+
+        } catch (Exception e) {
+            log.error("ERRORE AGGIUNTA RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome, e);
+            throw e; // SE VUOI, WRAPPA IN UNA TUA ECCEZIONE CUSTOM
+        }
     }
+
 
     @Override
+    @Transactional
     public Set<Ruolo> rimuoviRuolo(Long personaId, Roles nome) {
 
-        log.info("RICHIESTA RIMOZIONE RUOLO: PERSONA_ID={}, RUOLO={}", personaId, nome);
+        log.info("INIZIO RIMOZIONE RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome);
 
-        Persona persona = getById(personaId);
+        try {
+            int removedRows = personaRepository.deleteRuoloFromPersonaByNome(personaId, nome.name());
 
-        Ruolo ruolo = ruoloService.getByNome(nome);
-        log.debug("RUOLO TROVATO: RUOLO_NOME={}, RUOLO_ID={}", ruolo.getNome(), ruolo.getId());
+            if (removedRows > 0) {
+                log.info("RUOLO RIMOSSO CON SUCCESSO - PERSONA_ID={} - RUOLO={}", personaId, nome);
+            } else {
+                log.warn("NESSUNA MODIFICA IN RIMOZIONE RUOLO (NON PRESENTE O RUOLO NON TROVATO) - PERSONA_ID={} - RUOLO={}",
+                        personaId, nome);
+            }
 
-        if (persona.getRuoli() == null) {
-            log.error("SET RUOLI NULLO: PERSONA_ID={}, NIENTE DA RIMUOVERE", personaId);
-            return java.util.Collections.emptySet();
-        }
+            Set<Ruolo> ruoli = personaRepository.findRuoliByPersonaId(personaId);
 
-        if (persona.getRuoli().contains(ruolo)) {
-            persona.getRuoli().remove(ruolo);
-            Persona updated = update(persona);
-
-            log.info("RUOLO RIMOSSO CON SUCCESSO: PERSONA_ID={}, RUOLO={}", personaId, nome);
-            log.debug("RUOLI DOPO RIMOZIONE: PERSONA_ID={}, RUOLI={}",
+            log.debug("RUOLI DOPO RIMOZIONE - PERSONA_ID={} - RUOLI={}",
                     personaId,
-                    updated.getRuoli() != null ? updated.getRuoli().stream().map(Ruolo::getNome).toList() : "NULL"
+                    ruoli != null ? ruoli.stream().map(Ruolo::getNome).toList() : "NULL"
             );
 
-            return updated.getRuoli();
-        }
+            log.info("FINE RIMOZIONE RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome);
 
-        log.error("RUOLO NON PRESENTE: NESSUNA MODIFICA. PERSONA_ID={}, RUOLO={}", personaId, nome);
-        return persona.getRuoli();
+            return ruoli != null ? ruoli : java.util.Collections.emptySet();
+
+        } catch (Exception e) {
+            log.error("ERRORE RIMOZIONE RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome, e);
+            throw e; // SE VUOI, WRAPPA IN UNA TUA ECCEZIONE CUSTOM
+        }
     }
+
 
 
 }
