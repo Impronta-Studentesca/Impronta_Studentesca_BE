@@ -1,5 +1,6 @@
 package it.impronta_studentesca_be.service.impl;
 
+import it.impronta_studentesca_be.constant.TipoCorso;
 import it.impronta_studentesca_be.dto.DocumentoLinkResponseDTO;
 import it.impronta_studentesca_be.dto.DriveFileInfo;
 import it.impronta_studentesca_be.dto.record.StaffExportRow;
@@ -200,7 +201,9 @@ public class DocumentiServiceImpl implements DocumentiService {
 
                     row.createCell(0).setCellValue(x.dipartimentoCodice());
                     row.createCell(1).setCellValue(x.corsoDiStudiNome());
-                    row.createCell(2).setCellValue(x.tipoCorso());
+                    row.createCell(2).setCellValue(
+                            x.tipoCorso() != null ? TipoCorso.valueOf(x.tipoCorso()).getValue() : ""
+                    );
                     row.createCell(3).setCellValue(x.nome());
                     row.createCell(4).setCellValue(x.cognome());
 
