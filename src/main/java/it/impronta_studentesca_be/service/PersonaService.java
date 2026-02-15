@@ -11,7 +11,7 @@ import java.util.Set;
 
 public interface PersonaService {
 
-    void create(Persona persona);
+    Persona create(Persona persona);
 
     void update(Persona persona);
 

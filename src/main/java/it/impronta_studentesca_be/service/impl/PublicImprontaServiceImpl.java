@@ -1,14 +1,21 @@
 package it.impronta_studentesca_be.service.impl;
 
+import it.impronta_studentesca_be.constant.PasswordTokenPurpose;
 import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.dto.record.CorsoMiniDTO;
 import it.impronta_studentesca_be.dto.record.DipartimentoResponseDTO;
 import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
+import it.impronta_studentesca_be.dto.record.RappresentanzaAggRow;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
 import it.impronta_studentesca_be.entity.Ruolo;
+import it.impronta_studentesca_be.exception.EntityNotFoundException;
+import it.impronta_studentesca_be.exception.GetAllException;
+import it.impronta_studentesca_be.repository.OrganoRappresentanzaRepository;
+import it.impronta_studentesca_be.repository.PersonaRappresentanzaRepository;
+import it.impronta_studentesca_be.repository.PersonaRepository;
 import it.impronta_studentesca_be.security.PersonaUserDetails;
 import it.impronta_studentesca_be.service.*;
 import it.impronta_studentesca_be.util.Mapper;
@@ -26,6 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 import java.util.*;
@@ -48,10 +56,16 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     private PersonaService personaService;
 
     @Autowired
+    private PersonaRepository personaRepository;
+
+    @Autowired
     private PersonaDirettivoService personaDirettivoService;
 
     @Autowired
     private PersonaRappresentanzaService personaRappresentanzaService;
+
+    @Autowired
+    private PersonaRappresentanzaRepository personaRappresentanzaRepository;
 
     @Autowired
     private DirettivoService direttivoService;
@@ -60,10 +74,19 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     private OrganoRappresentanzaService organoRappresentanzaService;
 
     @Autowired
+    private OrganoRappresentanzaRepository organoRappresentanzaRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
     private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private PasswordTokenService passwordTokenService;
+
+    @Autowired
+    private EmailService emailService;
 
     @Autowired
     private Mapper mapper;
@@ -199,93 +222,164 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
 
     @Override
+    @Transactional(readOnly = true)
     public PersonaRappresentanzaResponseDTO getPersonaRappresentanzaById(Long id) {
-        return new PersonaRappresentanzaResponseDTO(personaRappresentanzaService.getById(id));
+
+        log.info("RECUPERO RAPPRESENTANZA (DTO) - ID={}", id);
+
+        try {
+            PersonaRappresentanzaResponseDTO dto = personaRappresentanzaRepository.findDtoById(id)
+                    .orElseThrow(() -> {
+                        log.error("RAPPRESENTANZA NON TROVATA (DTO) - ID={}", id);
+                        return new EntityNotFoundException(PersonaRappresentanza.class.getSimpleName(), "ID", id);
+                    });
+
+            log.info("RAPPRESENTANZA TROVATA (DTO) - ID={}", id);
+            return dto;
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO RAPPRESENTANZA (DTO) - ID={}", id, e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLA RAPPRESENTANZA");
+        }
     }
 
-    @Override
-    public PersonaConRappresentanzeResponseDTO getRappresentanteByPersona(Long personaId) {
-        // Verifico che la persona esista (se non esiste, eccezione)
-        personaService.checkExistById(personaId);
-
-        // Tutte le righe persona_rappresentanza per quella persona
-        List<PersonaRappresentanza> rappresentanze =
-                personaRappresentanzaService.getByPersona(personaId);
-
-        // Persona ricavata direttamente dalla prima rappresentanza (se c’è)
-        PersonaResponseDTO personaDTO = rappresentanze.stream()
-                .findFirst()
-                .map(PersonaRappresentanza::getPersona)      // Persona
-                .map(PersonaResponseDTO::new)                // -> PersonaResponseDTO
-                // se non ha nessuna rappresentanza ma esiste comunque nel DB:
-                .orElseGet(() -> new PersonaResponseDTO(personaService.getById(personaId)));
-
-        // Mappo ogni PersonaRappresentanza in un DTO “ruolo”
-        List<RuoloRappresentanzaDTO> ruoli = rappresentanze.stream()
-                .map(pr -> RuoloRappresentanzaDTO.builder()
-                        .id(pr.getId())
-                        .organo(new OrganoRappresentanzaDTO(pr.getOrganoRappresentanza()))
-                        .dataInizio(pr.getDataInizio())
-                        .dataFine(pr.getDataFine())
-                        .build()
-                )
-                .toList();
-
-        // Costruisco il DTO aggregato
-        return PersonaConRappresentanzeResponseDTO.builder()
-                .persona(personaDTO)
-                .cariche(ruoli)
-                .build();
-    }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PersonaRappresentanzaResponseDTO> getRappresentanteByOrgano(Long organoId) {
 
-        organoRappresentanzaService.checkExistById(organoId);
-        return personaRappresentanzaService.getByOrganoId(organoId).stream().map(PersonaRappresentanzaResponseDTO::new).toList();
+        log.info("RECUPERO RAPPRESENTANTI (DTO) PER ORGANO_ID={}", organoId);
+
+        try {
+            List<PersonaRappresentanzaResponseDTO> list = personaRappresentanzaRepository.findDtoByOrganoId(organoId);
+
+            if (!list.isEmpty()) {
+                log.info("TROVATI {} RAPPRESENTANTI (DTO) PER ORGANO_ID={}", list.size(), organoId);
+                return list;
+            }
+
+            log.info("NESSUN RAPPRESENTANTE PER ORGANO_ID={}", organoId);
+
+            // SE VUOTO, CONTROLLO ESISTENZA ORGANO (COME HAI FATTO PER DIPARTIMENTO)
+            boolean esiste = organoRappresentanzaRepository.existsById(organoId);
+            if (!esiste) {
+                log.error("ORGANO NON TROVATO - ID={}", organoId);
+                throw new EntityNotFoundException("OrganoRappresentanza", "ID", organoId);
+            }
+
+            return list;
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO RAPPRESENTANTI (DTO) PER ORGANO_ID={}", organoId, e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DEI RAPPRESENTANTI PER ORGANO");
+        }
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PersonaConRappresentanzeResponseDTO getRappresentanteByPersona(Long personaId) {
+
+        log.info("RECUPERO RAPPRESENTANZE PER PERSONA_ID={}", personaId);
+
+        try {
+            List<RappresentanzaAggRow> rows = personaRappresentanzaRepository.findAggRowsByPersonaId(personaId);
+
+            PersonaResponseDTO personaDTO;
+            List<RuoloRappresentanzaDTO> cariche;
+
+            if (rows.isEmpty()) {
+                log.info("NESSUNA RAPPRESENTANZA PER PERSONA_ID={}", personaId);
+
+                personaDTO = personaRepository.findLiteDtoById(personaId)
+                        .orElseThrow(() -> {
+                            log.error("PERSONA NON TROVATA - ID={}", personaId);
+                            return new EntityNotFoundException("Persona", "ID", personaId);
+                        });
+
+                cariche = List.of();
+            } else {
+                RappresentanzaAggRow first = rows.get(0);
+                personaDTO = new PersonaResponseDTO(first.personaId(), first.personaNome(), first.personaCognome());
+
+                cariche = rows.stream()
+                        .map(r -> RuoloRappresentanzaDTO.builder()
+                                .id(r.prId())
+                                .organo(new OrganoRappresentanzaDTO(r.organoId(), r.organoCodice(), r.organoNome()))
+                                .dataInizio(r.dataInizio())
+                                .dataFine(r.dataFine())
+                                .build()
+                        )
+                        .toList();
+            }
+
+            log.info("FINE RECUPERO RAPPRESENTANZE PER PERSONA_ID={} - CARICHE={}", personaId, cariche.size());
+
+            return PersonaConRappresentanzeResponseDTO.builder()
+                    .persona(personaDTO)
+                    .cariche(cariche)
+                    .build();
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO RAPPRESENTANZE PER PERSONA_ID={}", personaId, e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLE RAPPRESENTANZE PER PERSONA");
+        }
+    }
+
+
+
+    @Override
+    @Transactional(readOnly = true)
     public List<PersonaConRappresentanzeResponseDTO> getRappresentanteAll() {
 
-        // Recupero tutte le righe persona_rappresentanza
-        List<PersonaRappresentanza> rappresentanze = personaRappresentanzaService.getAll();
+        log.info("RECUPERO TUTTI I RAPPRESENTANTI (AGGREGATI)");
 
-        // Raggruppo per persona (uso l'id per sicurezza)
-        Map<Long, List<PersonaRappresentanza>> byPersona =
-                rappresentanze.stream()
-                        .collect(Collectors.groupingBy(pr -> pr.getPersona().getId()));
+        try {
+            List<RappresentanzaAggRow> rows = personaRappresentanzaRepository.findAggRowsAll();
 
-        // Per ogni persona costruisco il DTO aggregato
-        return byPersona.values().stream()
-                .map(listaPerPersona -> {
+            if (rows.isEmpty()) {
+                log.info("NESSUN RAPPRESENTANTE TROVATO");
+                return List.of();
+            }
 
-                    // Persona (è la stessa per tutta la lista)
-                    Persona persona = listaPerPersona.get(0).getPersona();
-                    PersonaResponseDTO personaDTO = new PersonaResponseDTO(persona);
+            // MAP PERSONA_ID -> DTO IN COSTRUZIONE
+            Map<Long, PersonaConRappresentanzeResponseDTO> map = new LinkedHashMap<>();
+            Map<Long, List<RuoloRappresentanzaDTO>> caricheMap = new LinkedHashMap<>();
 
-                    // Tutti i ruoli di quella persona, ORDINATI per organo
-                    List<RuoloRappresentanzaDTO> ruoli = listaPerPersona.stream()
-                            .map(pr -> RuoloRappresentanzaDTO.builder()
-                                    .id(pr.getId())
-                                    .organo(new OrganoRappresentanzaDTO(pr.getOrganoRappresentanza()))
-                                    .dataInizio(pr.getDataInizio())
-                                    .dataFine(pr.getDataFine())
-                                    .build()
-                            )
-                            // qui scegli tu se ordinare per codice o per nome
-                            .sorted(Comparator.comparing(r ->
-                                    r.getOrgano().getCodice()   // oppure getNome()
-                            ))
-                            .toList();
+            for (RappresentanzaAggRow r : rows) {
+                map.computeIfAbsent(r.personaId(), pid -> PersonaConRappresentanzeResponseDTO.builder()
+                        .persona(new PersonaResponseDTO(r.personaId(), r.personaNome(), r.personaCognome()))
+                        .cariche(new java.util.ArrayList<>())
+                        .build()
+                );
 
-                    return PersonaConRappresentanzeResponseDTO.builder()
-                            .persona(personaDTO)
-                            .cariche(ruoli)
-                            .build();
-                })
-                .toList();
+                // aggiungo carica
+                map.get(r.personaId()).getCariche().add(
+                        RuoloRappresentanzaDTO.builder()
+                                .id(r.prId())
+                                .organo(new OrganoRappresentanzaDTO(r.organoId(), r.organoCodice(), r.organoNome()))
+                                .dataInizio(r.dataInizio())
+                                .dataFine(r.dataFine())
+                                .build()
+                );
+            }
+
+            List<PersonaConRappresentanzeResponseDTO> result = new ArrayList<>(map.values());
+
+            log.info("FINE RECUPERO TUTTI I RAPPRESENTANTI (AGGREGATI) - PERSONE={}", result.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO TUTTI I RAPPRESENTANTI (AGGREGATI)", e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DI TUTTI I RAPPRESENTANTI");
+        }
     }
+
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -323,61 +417,44 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     /// INIZIO DIRETTIVO //////////////////////////////////////////////////////
     /// //////////////////////////////////////////////////////////
 
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
+
     @Override
     public DirettivoResponseDTO getDirettivoById(java.lang.Long personaId) {
-        return new DirettivoResponseDTO(direttivoService.getById(personaId));
+        return direttivoService.getById(personaId);
     }
 
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
+
     @Override
     public List<DirettivoResponseDTO> getDirettivi() {
 
-        return direttivoService.getAll().stream().map(DirettivoResponseDTO::new).collect(Collectors.toList());
+        return direttivoService.getAll();
 
     }
 
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
     @Override
     public List<DirettivoResponseDTO> getDirettiviByTipo(TipoDirettivo tipo) {
 
-        return direttivoService.getByTipo(tipo).stream().map(DirettivoResponseDTO::new).collect(Collectors.toList());
+        return direttivoService.getByTipo(tipo);
 
     }
 
-    //TODO: QUANDO CI SARANNO DIRETTIVI DIPARTIMENTALI
     @Override
-    public List<DirettivoResponseDTO> getDirettiviByDipartimento(java.lang.Long dipartimentoId) {
+    public List<DirettivoResponseDTO> getDirettiviByDipartimento(Long dipartimentoId) {
 
-        return direttivoService.getByDipartimento(dipartimentoId).stream().map(DirettivoResponseDTO::new).collect(Collectors.toList());
+        return direttivoService.getByDipartimento(dipartimentoId);
 
     }
 
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
     @Override
     public List<DirettivoResponseDTO> getDirettiviInCarica() {
 
-        return direttivoService.getDirettiviInCarica().stream().map(DirettivoResponseDTO::new).collect(Collectors.toList());
+        return direttivoService.getDirettiviInCarica();
 
     }
 
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
     @Override
     public List<DirettivoResponseDTO> getDirettiviByTipoInCarica(TipoDirettivo tipo) {
-
-        return direttivoService.getByTipo(tipo).stream()
-                .filter(direttivo -> direttivo.isAttivo()).map(DirettivoResponseDTO::new).collect(Collectors.toList());
-
+        return direttivoService.getDirettiviByTipoInCarica(tipo); // oppure service dedicato
     }
     ////////////////////////////////////////////////////////////////////////////
     /// FINE DIRETTIVO//////////////////////////////////////////////////////
@@ -388,88 +465,140 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     /// //////////////////////////////////////////////////////////
 
     @Override
-    public void creaPassword(java.lang.Long personaId, java.lang.String password) {
+    @Transactional
+    public void creaPassword(Long personaId, String password, String token) {
 
-        // recupero la persona
-        Persona persona = personaService.getById(personaId);
+        log.info("INIZIO CREAZIONE PASSWORD (PUBBLICO) - PERSONA_ID={}", personaId);
 
-        // controllo che la nuova password sia valorizzata
-        if (password == null || password.isBlank()) {
-            log.error("LA PASSWORD NON PUO' ESSERE VUOTA: {}", password);
-            throw new IllegalArgumentException("La password non può essere vuota.");
+        try {
+            if (personaId == null) {
+                log.error("ERRORE CREAZIONE PASSWORD - PERSONA_ID NULL");
+                throw new IllegalArgumentException("PERSONA_ID NON VALIDO");
+            }
+            if (password == null || password.isBlank()) {
+                log.error("ERRORE CREAZIONE PASSWORD - PASSWORD VUOTA - PERSONA_ID={}", personaId);
+                throw new IllegalArgumentException("PASSWORD VUOTA");
+            }
+
+            // 1) CONSUMO TOKEN (MONOUSO). SE FALLISCE -> 400
+            passwordTokenService.consumeOrThrow(token, personaId, PasswordTokenPurpose.CREA_PASSWORD);
+
+            // 2) UPDATE CONDIZIONALE (NO SELECT)
+            String hash = passwordEncoder.encode(password);
+
+            int updated = personaRepository.setPasswordIfEmpty(personaId, hash);
+
+            if (updated != 1) {
+                // qui o persona non esiste, o password già presente
+                boolean exists = personaRepository.existsById(personaId);
+                if (!exists) {
+                    log.error("PERSONA NON TROVATA - PERSONA_ID={}", personaId);
+                    throw new EntityNotFoundException("Persona", "ID", personaId);
+                }
+
+                log.error("PASSWORD GIA' PRESENTE - PERSONA_ID={}", personaId);
+                throw new IllegalStateException("PASSWORD GIA' IMPOSTATA");
+            }
+
+            log.info("FINE CREAZIONE PASSWORD OK - PERSONA_ID={}", personaId);
+
+        } catch (EntityNotFoundException | IllegalArgumentException | IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ERRORE CREAZIONE PASSWORD (PUBBLICO) - PERSONA_ID={}", personaId, e);
+            throw e;
         }
-
-        // se ha già una password, non permetto di "crearla" di nuovo
-        if (persona.getPassword() != null && !persona.getPassword().isBlank()) {
-            log.error("LA PASSWORD E' GIA' STATA CREATA: {}", password);
-            throw new IllegalStateException("La password è già stata impostata per questa persona. Usa il reset.");
-        }
-
-        // creo/imposto la password codificata
-        persona.setPassword(passwordEncoder.encode(password));
-        personaService.update(persona);
     }
-
 
     @Override
-    public void modificaPassword(java.lang.Long personaId, java.lang.String password) {
+    @Transactional
+    public void modificaPassword(Long personaId, String password, String token) {
 
-        // recupero la persona
-        Persona persona = personaService.getById(personaId);
+        log.info("INIZIO MODIFICA PASSWORD (PUBBLICO) - PERSONA_ID={}", personaId);
 
-        // controllo che la nuova password sia valorizzata
-        if (password == null || password.isBlank()) {
-            log.error("LA PASSWORD NON PUO' ESSERE VUOTA: {}", password);
-            throw new IllegalArgumentException("La password non può essere vuota.");
+        try {
+            if (personaId == null) {
+                log.error("ERRORE MODIFICA PASSWORD - PERSONA_ID NULL");
+                throw new IllegalArgumentException("PERSONA_ID NON VALIDO");
+            }
+            if (password == null || password.isBlank()) {
+                log.error("ERRORE MODIFICA PASSWORD - PASSWORD VUOTA - PERSONA_ID={}", personaId);
+                throw new IllegalArgumentException("PASSWORD VUOTA");
+            }
+
+            // 1) CONSUMO TOKEN (MONOUSO). SE FALLISCE -> 400
+            passwordTokenService.consumeOrThrow(token, personaId, PasswordTokenPurpose.MODIFICA_PASSWORD);
+
+            // 2) UPDATE CONDIZIONALE (NO SELECT)
+            String hash = passwordEncoder.encode(password);
+
+            int updated = personaRepository.setPasswordIfPresent(personaId, hash);
+
+            if (updated != 1) {
+                // qui o persona non esiste, o password non era presente
+                boolean exists = personaRepository.existsById(personaId);
+                if (!exists) {
+                    log.error("PERSONA NON TROVATA - PERSONA_ID={}", personaId);
+                    throw new EntityNotFoundException("Persona", "ID", personaId);
+                }
+
+                log.error("PASSWORD NON PRESENTE - PERSONA_ID={}", personaId);
+                throw new IllegalStateException("PASSWORD NON CREATA");
+            }
+
+            log.info("FINE MODIFICA PASSWORD OK - PERSONA_ID={}", personaId);
+
+        } catch (EntityNotFoundException | IllegalArgumentException | IllegalStateException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ERRORE MODIFICA PASSWORD (PUBBLICO) - PERSONA_ID={}", personaId, e);
+            throw e;
         }
-
-        // LA PASSWORD PUò ESSERE MODIFICATA SOLO SE è STATA CREATA
-        if (persona.getPassword() == null || persona.getPassword().isBlank()) {
-            log.error("LA PASSWORD DEVE ESSERE CREATA PRIMA DI ESSERE MODIFICATA");
-            throw new IllegalStateException("Non puoi modificare la password se non è stata mai creata");
-        }
-
-        // creo/imposto la password codificata
-        persona.setPassword(passwordEncoder.encode(password));
-        personaService.update(persona);
     }
+
+
+
 
 
     @Override
     public LoginResponseDTO login(HttpServletRequest request, HttpServletResponse response, LoginRequestDTO dto) {
 
+        String email = dto != null && dto.getEmail() != null
+                ? dto.getEmail().trim().toLowerCase(Locale.ROOT)
+                : null;
 
         try {
-            log.info("L'UTENTE {} STA PROVANDO A LOGGARSI ", dto.getEmail().trim().toLowerCase(Locale.ROOT));
+            log.info("TENTATIVO LOGIN - EMAIL={}", email);
+
+            if (email == null || email.isBlank() || dto.getPassword() == null) {
+                log.error("LOGIN FALLITO - INPUT NON VALIDO - EMAIL={}", email);
+                throw new BadCredentialsException("CREDENZIALI ERRATE");
+            }
 
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getPassword())
+                    new UsernamePasswordAuthenticationToken(email, dto.getPassword())
             );
 
-// forza creazione sessione (così emette cookie se serve)
             request.getSession(true);
 
-// crea contesto e setta auth
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(authentication);
             SecurityContextHolder.setContext(context);
 
-// ✅ salva il contesto nella sessione associata al JSESSIONID
             SecurityContextRepository repo = new HttpSessionSecurityContextRepository();
             repo.saveContext(context, request, response);
 
-
-            // Principal = il nostro PersonaUserDetails
             PersonaUserDetails userDetails = (PersonaUserDetails) authentication.getPrincipal();
             if (userDetails == null || userDetails.getPersona() == null) {
-                log.error("Tentativo di login fallito per email {}", dto.getEmail());
+                log.error("LOGIN FALLITO - PRINCIPAL NON VALIDO - EMAIL={}", email);
                 throw new BadCredentialsException("IMPOSSIBILE AUTENTICARSI");
             }
+
             Persona persona = userDetails.getPersona();
 
-            Set<java.lang.String> ruoli = persona.getRuoli().stream()
-                    .map(Ruolo::getNome)                 // enum Roles
-                    .map(Roles::getAuthority)          // "DIRETTIVO", "USER", ...
+            Set<String> ruoli = persona.getRuoli().stream()
+                    .map(Ruolo::getNome)
+                    .map(Roles::getAuthority)
                     .collect(Collectors.toSet());
 
             LoginResponseDTO responseDTO = new LoginResponseDTO();
@@ -479,13 +608,24 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
             responseDTO.setEmail(persona.getEmail());
             responseDTO.setRuoli(ruoli);
 
-
+            log.info("LOGIN OK - PERSONA_ID={} - EMAIL={}", persona.getId(), email);
             return responseDTO;
 
         } catch (BadCredentialsException ex) {
-            log.error("Tentativo di login fallito per email {}", dto.getEmail());
-            throw new BadCredentialsException("Credenziali errate ");
+            log.error("LOGIN FALLITO - BAD CREDENTIALS - EMAIL={}", email);
+            throw new BadCredentialsException("CREDENZIALI ERRATE");
+        } catch (Exception ex) {
+            log.error("LOGIN FALLITO - ERRORE INASPETTATO - EMAIL={}", email, ex);
+            throw ex;
         }
+    }
+
+    @Override
+    public void richiestaModificaPassword(String email) {
+
+       Persona persona = personaService.getByEmail(email);
+
+       emailService.sendLinkPasswordUtente(persona.getId(), email, persona.getNome(), true);
     }
 
 

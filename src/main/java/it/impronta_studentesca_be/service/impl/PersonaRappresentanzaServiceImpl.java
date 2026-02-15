@@ -1,5 +1,6 @@
 package it.impronta_studentesca_be.service.impl;
 
+import it.impronta_studentesca_be.dto.PersonaRappresentanzaResponseDTO;
 import it.impronta_studentesca_be.entity.OrganoRappresentanza;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
@@ -171,6 +172,31 @@ public class PersonaRappresentanzaServiceImpl implements PersonaRappresentanzaSe
                     );
                 });
     }
+
+    @Transactional(readOnly = true)
+    @Override
+    public PersonaRappresentanzaResponseDTO getPersonaRappresentanzaById(Long id) {
+
+        log.info("RECUPERO RAPPRESENTANZA (DTO) - ID={}", id);
+
+        try {
+            PersonaRappresentanzaResponseDTO dto = personaRappresentanzaRepository.findDtoById(id)
+                    .orElseThrow(() -> {
+                        log.error("RAPPRESENTANZA NON TROVATA (DTO) - ID={}", id);
+                        return new EntityNotFoundException(PersonaRappresentanza.class.getSimpleName(), "ID", id);
+                    });
+
+            log.info("RAPPRESENTANZA TROVATA (DTO) - ID={}", id);
+            return dto;
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO RAPPRESENTANZA (DTO) - ID={}", id, e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLA RAPPRESENTANZA");
+        }
+    }
+
 
     @Override
     public List<PersonaRappresentanza> getByPersona(Long personaId) {

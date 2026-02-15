@@ -1,13 +1,16 @@
 package it.impronta_studentesca_be.service.impl;
 
 import it.impronta_studentesca_be.constant.TipoDirettivo;
+import it.impronta_studentesca_be.dto.DirettivoResponseDTO;
 import it.impronta_studentesca_be.entity.Direttivo;
 import it.impronta_studentesca_be.exception.*;
+import it.impronta_studentesca_be.repository.DipartimentoRepository;
 import it.impronta_studentesca_be.repository.DirettivoRepository;
 import it.impronta_studentesca_be.service.DirettivoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -17,6 +20,9 @@ public class DirettivoServiceImpl implements DirettivoService {
 
     @Autowired
     private DirettivoRepository direttivoRepository;
+
+    @Autowired
+    private DipartimentoRepository dipartimentoRepository;
 
     @Override
     public Direttivo create(Direttivo direttivo) {
@@ -79,22 +85,126 @@ public class DirettivoServiceImpl implements DirettivoService {
 
     }
 
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
+
     @Override
-    public Direttivo getById(Long id) {
-        log.info("RECUPERO DIRETTIVO CON ID: {}", id);
-        return direttivoRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.error("DIRETTIVO NON TROVATO CON ID: {}", id);
-                    return new EntityNotFoundException(
-                            Direttivo.class.getSimpleName(),
-                            "id",
-                            id
-                    );
-                });
+    @Transactional(readOnly = true)
+    public DirettivoResponseDTO getById(Long id) {
+
+        log.info("RECUPERO DIRETTIVO (DTO) - ID={}", id);
+
+        try {
+            DirettivoResponseDTO dto = direttivoRepository.findDtoById(id)
+                    .orElseThrow(() -> {
+                        log.error("DIRETTIVO NON TROVATO (DTO) - ID={}", id);
+                        return new EntityNotFoundException(Direttivo.class.getSimpleName(), "ID", id);
+                    });
+
+            log.info("DIRETTIVO TROVATO (DTO) - ID={}", id);
+            return dto;
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO DIRETTIVO (DTO) - ID={}", id, e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DEL DIRETTIVO");
+        }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DirettivoResponseDTO> getAll() {
+
+        log.info("RECUPERO DIRETTIVI (DTO)");
+
+        try {
+            List<DirettivoResponseDTO> list = direttivoRepository.findAllDto();
+            log.info("DIRETTIVI TROVATI (DTO): {}", list.size());
+            return list;
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO DIRETTIVI (DTO)", e);
+            throw new GetAllException(Direttivo.class.getSimpleName());
+        }
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DirettivoResponseDTO> getByTipo(TipoDirettivo tipo) {
+
+        log.info("RECUPERO DIRETTIVI (DTO) PER TIPO={}", tipo);
+
+        try {
+            List<DirettivoResponseDTO> direttivi = direttivoRepository.findDtoByTipo(tipo);
+            log.info("DIRETTIVI (DTO) TROVATI: {}", direttivi.size());
+            return direttivi;
+
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO DIRETTIVI (DTO) PER TIPO={}", tipo, e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DEI DIRETTIVI PER TIPO");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DirettivoResponseDTO> getByDipartimento(Long dipartimentoId) {
+
+        log.info("RECUPERO DIRETTIVI (DTO) PER DIPARTIMENTO_ID={}", dipartimentoId);
+
+        try {
+            List<DirettivoResponseDTO> direttivi = direttivoRepository.findDtoByDipartimentoId(dipartimentoId);
+
+            if (direttivi.isEmpty()) {
+                log.info("NESSUN DIRETTIVO (DTO) TROVATO PER DIPARTIMENTO_ID={}", dipartimentoId);
+
+                // SE VUOI 404 SOLO QUANDO DIPARTIMENTO NON ESISTE (COME HAI FATTO ALTROVE)
+                boolean dipEsiste = dipartimentoRepository.existsById(dipartimentoId);
+                if (!dipEsiste) {
+                    log.error("DIPARTIMENTO NON TROVATO - ID={}", dipartimentoId);
+                    throw new EntityNotFoundException("Dipartimento", "ID", dipartimentoId);
+                }
+            } else {
+                log.info("TROVATI {} DIRETTIVI (DTO) PER DIPARTIMENTO_ID={}", direttivi.size(), dipartimentoId);
+            }
+
+            return direttivi;
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO DIRETTIVI (DTO) PER DIPARTIMENTO_ID={}", dipartimentoId, e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DEI DIRETTIVI PER DIPARTIMENTO");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DirettivoResponseDTO> getDirettiviInCarica() {
+
+        log.info("RECUPERO DIRETTIVI (DTO) IN CARICA");
+
+        try {
+            List<DirettivoResponseDTO> direttivi = direttivoRepository.findDtoInCarica();
+
+            if (direttivi.isEmpty()) {
+                log.info("NESSUN DIRETTIVO (DTO) IN CARICA TROVATO");
+            } else {
+                log.info("TROVATI {} DIRETTIVI (DTO) IN CARICA", direttivi.size());
+            }
+
+            return direttivi;
+
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO DIRETTIVI (DTO) IN CARICA", e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DEI DIRETTIVI IN CARICA");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<DirettivoResponseDTO> getDirettiviByTipoInCarica(TipoDirettivo tipo) {
+        return direttivoRepository.findDtoByTipoInCarica(tipo); // oppure service dedicato
+    }
+
 
     @Override
     public void checkExistById(Long id) {
@@ -104,97 +214,6 @@ public class DirettivoServiceImpl implements DirettivoService {
         }
     }
 
-    @Override
-    public List<Direttivo> getAll() {
-        log.info("RECUPERO DI TUTTI I DIRETTIVI");
-        try {
-            List<Direttivo> direttivi = direttivoRepository.findAll();
-            log.info("DIRETTIVI TROVATI: {}", direttivi.size());
-            return direttivi;
-        } catch (Exception e) {
-            log.error("ERRORE NEL RECUPERO DI TUTTI I DIRETTIVI", e);
-            throw new GetAllException(Direttivo.class.getSimpleName());
-        }
-    }
 
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
-    @Override
-    public List<Direttivo> getByTipo(TipoDirettivo tipo) {
-        log.info("RECUPERO DI TUTTI I DIRETTIVI DI TIPO: {}", tipo);
-        try {
-        List<Direttivo> direttivi = direttivoRepository.findByTipo(tipo);
-        log.info("DIRETTIVI TROVATI: {}", direttivi.size());
-        return direttivi;
-        } catch (Exception e) {
-            log.error("ERRORE NEL RECUPERO DI TUTTI I DIRETTIVIDI TIPO: {}", tipo, e);
-            throw new GetAllException(Direttivo.class.getSimpleName());
-        }
-    }
-
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
-    @Override
-    public List<Direttivo> getByDipartimento(Long dipartimentoId) {
-        log.info("RECUPERO DIRETTIVI PER DIPARTIMENTO_ID={}", dipartimentoId);
-
-        try {
-
-            // 2) Recupero direttivi
-            List<Direttivo> direttivi = direttivoRepository.findByDipartimento_Id(dipartimentoId);
-
-            if (direttivi.isEmpty()) {
-                log.info("NESSUN DIRETTIVO TROVATO PER DIPARTIMENTO_ID={}", dipartimentoId);
-            } else {
-                log.info("TROVATI {} DIRETTIVI PER DIPARTIMENTO_ID={}", direttivi.size(), dipartimentoId  );
-            }
-
-            return direttivi;
-
-        } catch (EntityNotFoundException ex) {
-            // La rilanciamo così viene gestita dal GlobalExceptionHandler con 404
-            throw ex;
-        } catch (Exception ex) {
-            // Qualsiasi altro errore inaspettato
-            log.error("ERRORE DURANTE IL RECUPERO DEI DIRETTIVI PER DIPARTIMENTO_ID={}", dipartimentoId, ex);
-            throw new GetAllException(
-                    "Errore durante il recupero dei direttivi per dipartimento" + Direttivo.class.getSimpleName()
-            );
-        }
-    }
-
-    /*
-    TESTATO 06/12/2025 FUNZIONA
-     */
-    @Override
-    public List<Direttivo> getDirettiviInCarica(){
-        log.info("RECUPERO DIRETTIVI IN CARICA");
-
-        try {
-
-            // 2) Recupero direttivi
-            List<Direttivo> direttivi =  direttivoRepository.findByFineMandato(null);
-
-            if (direttivi.isEmpty()) {
-                log.info("NESSUN DIRETTIVO IN CARICA TROVATO");
-            } else {
-                log.info("TROVATI {} DIRETTIVI IN CARICA", direttivi.size());
-            }
-
-            return direttivi;
-
-        } catch (EntityNotFoundException ex) {
-            // La rilanciamo così viene gestita dal GlobalExceptionHandler con 404
-            throw ex;
-        } catch (Exception ex) {
-            // Qualsiasi altro errore inaspettato
-            log.error("ERRORE DURANTE IL RECUPERO DEI DIRETTIVI IN CARICA", ex);
-            throw new GetAllException(
-                    "Errore durante il recupero dei direttivi in carica" + Direttivo.class.getSimpleName()
-            );
-        }
-    }
 }
 

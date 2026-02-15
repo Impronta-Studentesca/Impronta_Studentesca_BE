@@ -25,7 +25,7 @@ public class DirettivoResponseDTO {
      */
     private Long dipartimentoId;
 
-    private String annoAccademico;
+    private String dipartimentoCodice;
 
     private LocalDate inizioMandato;
 
@@ -45,4 +45,47 @@ public class DirettivoResponseDTO {
         this.fineMandato = direttivo.getFineMandato();
         this.attivo = direttivo.isAttivo();
     }
+
+    public DirettivoResponseDTO(Long id,
+                                TipoDirettivo tipo,
+                                Long dipartimentoId,
+                                LocalDate inizioMandato,
+                                LocalDate fineMandato) {
+        this.id = id;
+        this.tipo = tipo;
+        this.dipartimentoId = dipartimentoId;
+        this.inizioMandato = inizioMandato;
+        this.fineMandato = fineMandato;
+        this.attivo = calcolaAttivo(inizioMandato, fineMandato);
+    }
+
+    public DirettivoResponseDTO(Long id,
+                                TipoDirettivo tipo,
+                                Long dipartimentoId,
+                                String dipartimentoCodice,
+                                LocalDate inizioMandato,
+                                LocalDate fineMandato) {
+        this.id = id;
+        this.tipo = tipo;
+        this.dipartimentoId = dipartimentoId;
+        this.dipartimentoCodice = dipartimentoCodice;
+        this.inizioMandato = inizioMandato;
+        this.fineMandato = fineMandato;
+        this.attivo = calcolaAttivo(inizioMandato, fineMandato);
+    }
+
+    private boolean calcolaAttivo(LocalDate inizio, LocalDate fine) {
+        LocalDate today = LocalDate.now();
+
+        if (inizio == null) return false;
+
+        // CASO IN CUI FINE E' NULL: ATTIVO SE OGGI >= INIZIO
+        if (fine == null) {
+            return !today.isBefore(inizio);
+        }
+
+        // CASO FINE NOT NULL: ATTIVO SE OGGI IN [INIZIO, FINE]
+        return !today.isBefore(inizio) && !today.isAfter(fine);
+    }
+
 }

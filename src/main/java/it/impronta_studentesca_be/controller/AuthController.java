@@ -3,6 +3,8 @@ package it.impronta_studentesca_be.controller;
 import it.impronta_studentesca_be.constant.ApiPath;
 import it.impronta_studentesca_be.dto.LoginRequestDTO;
 import it.impronta_studentesca_be.dto.LoginResponseDTO;
+import it.impronta_studentesca_be.dto.PasswordSetRequest;
+import it.impronta_studentesca_be.dto.PersonaConRappresentanzeResponseDTO;
 import it.impronta_studentesca_be.service.PublicImprontaService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -31,28 +35,25 @@ public class AuthController {
 
 
     /**
-     * Primo settaggio password per una persona.
-     * Accessibile pubblicamente (es. link univoco inviato via mail).
+     * Primo settaggio password (PUBBLICO via link email).
      */
     @PostMapping("/persona/{personaId}/crea/password")
     public ResponseEntity<Void> creaPassword(@PathVariable Long personaId,
-                                             @RequestParam String password) {
+                                             @RequestBody PasswordSetRequest req) {
 
-        publicImprontaService.creaPassword(personaId, password);
-        return ResponseEntity.ok().build(); // oppure noContent() se preferisci 204
+        publicImprontaService.creaPassword(personaId, req.getPassword(), req.getToken());
+        return ResponseEntity.ok().build();
     }
 
-
     /**
-     * Modifica password per una persona.
-     * Accessibile pubblicamente (es. link univoco inviato via mail).
+     * Modifica password (PUBBLICO via link email).
      */
     @PostMapping("/persona/{personaId}/modifica/password")
     public ResponseEntity<Void> modificaPassword(@PathVariable Long personaId,
-                                             @RequestParam String password) {
+                                                 @RequestBody PasswordSetRequest req) {
 
-        publicImprontaService.modificaPassword(personaId, password);
-        return ResponseEntity.ok().build(); // oppure noContent() se preferisci 204
+        publicImprontaService.modificaPassword(personaId, req.getPassword(), req.getToken());
+        return ResponseEntity.ok().build();
     }
 
 
@@ -64,6 +65,13 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/richiesta/modifica/password/{email}" )
+    public ResponseEntity<List<PersonaConRappresentanzeResponseDTO>> richiestaModificaPassword(
+            @PathVariable String email
+    ) {
+        publicImprontaService.richiestaModificaPassword(email);
+        return ResponseEntity.ok().build();
+    }
 
 
 

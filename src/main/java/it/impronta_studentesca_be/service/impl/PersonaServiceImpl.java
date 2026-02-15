@@ -6,6 +6,7 @@ import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.Ruolo;
 import it.impronta_studentesca_be.exception.*;
 import it.impronta_studentesca_be.repository.PersonaRepository;
+import it.impronta_studentesca_be.service.EmailService;
 import it.impronta_studentesca_be.service.PersonaService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +29,7 @@ public class PersonaServiceImpl implements PersonaService {
     private RuoloServiceImpl ruoloService;
 
     @Override
-    @Transactional
-    public void create(Persona persona) {
+    public Persona create(Persona persona) {
 
         log.info("INIZIO CREAZIONE PERSONA - EMAIL={}", persona != null ? persona.getEmail() : null);
 
@@ -48,6 +48,7 @@ public class PersonaServiceImpl implements PersonaService {
             throw new CreateException(Persona.class.getSimpleName(),
                     persona != null ? persona.getNome() : "NULL");
         }
+        return persona;
     }
 
 

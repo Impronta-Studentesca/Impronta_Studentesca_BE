@@ -1,7 +1,9 @@
 package it.impronta_studentesca_be.service;
 
 import it.impronta_studentesca_be.constant.TipoDirettivo;
+import it.impronta_studentesca_be.dto.DirettivoResponseDTO;
 import it.impronta_studentesca_be.entity.Direttivo;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -13,15 +15,18 @@ public interface DirettivoService {
 
     void delete(Long id);
 
-    Direttivo getById(Long id);
+    DirettivoResponseDTO getById(Long id);
+
+    @Transactional(readOnly = true)
+    List<DirettivoResponseDTO> getDirettiviByTipoInCarica(TipoDirettivo tipo);
 
     void checkExistById(Long id);
 
-    List<Direttivo> getAll();
+    List<DirettivoResponseDTO> getAll();
 
-    List<Direttivo> getByTipo(TipoDirettivo tipo);
+    List<DirettivoResponseDTO> getByTipo(TipoDirettivo tipo);
 
-    List<Direttivo> getByDipartimento(Long dipartimentoId);
+    List<DirettivoResponseDTO> getByDipartimento(Long dipartimentoId);
 
-    List<Direttivo> getDirettiviInCarica();
+    List<DirettivoResponseDTO> getDirettiviInCarica();
 }

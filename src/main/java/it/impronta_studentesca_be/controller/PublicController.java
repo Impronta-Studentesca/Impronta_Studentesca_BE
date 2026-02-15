@@ -124,6 +124,13 @@ public class PublicController {
         return ResponseEntity.ok(publicImprontaService.getDirettivoById(direttivoId));
     }
 
+    // DIRETTIVO
+
+    @GetMapping("/" + ApiPath.DIRETTIVI_PATH )
+    public ResponseEntity<List<DirettivoResponseDTO>> getDirettivi() {
+        return ResponseEntity.ok(publicImprontaService.getDirettivi());
+    }
+
 
     @GetMapping("/" + ApiPath.TIPO_PATH + "/{tipo}/" + ApiPath.DIRETTIVI_PATH)
     public ResponseEntity<List<DirettivoResponseDTO>> getDirettivoById(
@@ -202,5 +209,6 @@ public class PublicController {
     ) {
         return ResponseEntity.ok(publicImprontaService.getRappresentanteAll());
     }
+
 
 }

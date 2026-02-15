@@ -1,6 +1,8 @@
 package it.impronta_studentesca_be.service;
 
+import it.impronta_studentesca_be.dto.PersonaRappresentanzaResponseDTO;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,6 +19,9 @@ public interface PersonaRappresentanzaService {
     PersonaRappresentanza delete(Long id);
 
     PersonaRappresentanza getById(Long id);
+
+    @Transactional(readOnly = true)
+    PersonaRappresentanzaResponseDTO getPersonaRappresentanzaById(Long id);
 
     List<PersonaRappresentanza> getByPersona(Long personaId);
 

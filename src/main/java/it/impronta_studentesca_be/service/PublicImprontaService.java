@@ -63,12 +63,12 @@ public interface PublicImprontaService {
 
     List<DirettivoResponseDTO> getDirettiviByTipoInCarica(TipoDirettivo tipo);
 
-    void creaPassword(java.lang.Long personaId, java.lang.String password);
+    void creaPassword(Long personaId, String password, String token);
 
-    void modificaPassword(java.lang.Long personaId, java.lang.String password);
+    void modificaPassword(Long personaId, String password, String token);
 
     LoginResponseDTO login(HttpServletRequest request, HttpServletResponse response, LoginRequestDTO dto);
 
-
+    void richiestaModificaPassword(String email);
 
 }

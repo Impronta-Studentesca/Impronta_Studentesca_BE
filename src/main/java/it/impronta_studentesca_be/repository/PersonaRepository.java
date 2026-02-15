@@ -187,6 +187,41 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
     Optional<PersonaResponseDTO> findLiteDtoById(@Param("personaId") Long personaId);
 
 
+    @Query("select p.password from Persona p where p.id = :personaId")
+    Optional<String> findPasswordHashById(@Param("personaId") Long personaId);
+
+    @Modifying(clearAutomatically = true)
+    @Query("""
+    update Persona p
+    set p.password = :passwordHash
+    where p.id = :personaId
+""")
+    int updatePasswordHash(@Param("personaId") Long personaId,
+                           @Param("passwordHash") String passwordHash);
+
+
+    // CREA: aggiorna SOLO se password è NULL o vuota
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        update Persona p
+        set p.password = :hash
+        where p.id = :personaId
+          and (p.password is null or p.password = '')
+    """)
+    int setPasswordIfEmpty(@Param("personaId") Long personaId,
+                           @Param("hash") String hash);
+
+    // MODIFICA: aggiorna SOLO se password già esiste (non null e non vuota)
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        update Persona p
+        set p.password = :hash
+        where p.id = :personaId
+          and (p.password is not null and p.password <> '')
+    """)
+    int setPasswordIfPresent(@Param("personaId") Long personaId,
+                             @Param("hash") String hash);
+
 
 }
 

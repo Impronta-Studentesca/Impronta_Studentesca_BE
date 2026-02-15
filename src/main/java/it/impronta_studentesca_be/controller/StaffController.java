@@ -1,10 +1,7 @@
 package it.impronta_studentesca_be.controller;
 
 import it.impronta_studentesca_be.constant.ApiPath;
-import it.impronta_studentesca_be.dto.ImageUploadResponseDTO;
-import it.impronta_studentesca_be.dto.PersonaRequestDTO;
-import it.impronta_studentesca_be.dto.PersonaResponseDTO;
-import it.impronta_studentesca_be.dto.StaffCardDTO;
+import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.service.AdminImprontaService;
 import it.impronta_studentesca_be.service.SecurityPersonaService;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +23,7 @@ public class StaffController {
 
     @Autowired
     SecurityPersonaService securityPersonaService;
+
 
     @GetMapping(ApiPath.ALL_PATH)
     public ResponseEntity<List<StaffCardDTO>> getStaff() {
@@ -60,6 +58,7 @@ public class StaffController {
         adminImprontaService.deleteFotoPersona(personaId);
         return ResponseEntity.ok().build();
     }
+
 
 
 }

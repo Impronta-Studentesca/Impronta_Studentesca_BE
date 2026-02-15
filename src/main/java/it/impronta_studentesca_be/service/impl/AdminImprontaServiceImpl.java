@@ -4,6 +4,7 @@ import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.dto.record.*;
+import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.exception.EntityNotFoundException;
 import it.impronta_studentesca_be.exception.GetAllException;
 import it.impronta_studentesca_be.repository.DirettivoRepository;
@@ -64,6 +65,8 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
     @Autowired
     private DirettivoRepository direttivoRepository;
 
+    @Autowired
+    private EmailService emailService;
 
     @Autowired
     private RuoloService ruoloService;
@@ -75,7 +78,6 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
 /////////////PERSONA//////////
  */
     @Override
-    @Transactional
     public void creaPersona(PersonaRequestDTO persona) {
 
         log.info("INIZIO CREA PERSONA - REQUEST={}", persona);
@@ -87,9 +89,11 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             }
 
             persona.setId(null);
-            personaService.create(mapper.toPersona(persona));
+            Persona saved = personaService.create(mapper.toPersona(persona));
 
             log.info("FINE CREA PERSONA - OK");
+
+            emailService.sendLinkPasswordUtente(saved.getId(), saved.getEmail(), saved.getNome(), false);
 
         } catch (Exception e) {
             log.error("ERRORE CREA PERSONA - REQUEST={}", persona, e);
@@ -121,6 +125,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
 
 
     @Override
+    @Transactional
     public void eliminaPersona(Long personaId) {
 
         deleteFotoPersona(personaId);

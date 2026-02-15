@@ -33,13 +33,6 @@ public class AdminController {
     }
 
 
-    // DIRETTIVO
-
-    @GetMapping("/" + ApiPath.DIRETTIVI_PATH )
-    public ResponseEntity<List<DirettivoResponseDTO>> getDirettivi() {
-        return ResponseEntity.ok(publicImprontaService.getDirettivi());
-    }
-
     @PostMapping("/" + ApiPath.DIRETTIVO_PATH)
     public ResponseEntity<Void> aggiungiADirettivo(@RequestBody DirettivoRequestDTO direttivoRequestDTO) {
         adminImprontaService.creaDirettivo(direttivoRequestDTO);
