@@ -72,6 +72,9 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
     private RuoloService ruoloService;
 
     @Autowired
+    private DocumentiService documentiService;
+
+    @Autowired
     private Mapper mapper;
 
 /*
@@ -92,6 +95,8 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             Persona saved = personaService.create(mapper.toPersona(persona));
 
             log.info("FINE CREA PERSONA - OK");
+
+            documentiService.marcaExcelAssociatiDaModificare();
 
             emailService.sendLinkPasswordUtente(saved.getId(), saved.getEmail(), saved.getNome(), false);
 
@@ -114,6 +119,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             }
 
             personaService.update(mapper.toPersona(persona));
+            documentiService.marcaExcelAssociatiDaModificare();
 
             log.info("FINE AGGIORNA PERSONA - OK");
 
@@ -130,6 +136,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
 
         deleteFotoPersona(personaId);
         personaService.delete(personaId);
+        documentiService.marcaExcelAssociatiDaModificare();
 
     }
 

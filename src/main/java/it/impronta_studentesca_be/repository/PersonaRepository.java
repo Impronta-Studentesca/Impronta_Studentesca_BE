@@ -2,10 +2,7 @@ package it.impronta_studentesca_be.repository;
 
 import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.dto.PersonaResponseDTO;
-import it.impronta_studentesca_be.dto.record.PersonaFotoRow;
-import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
-import it.impronta_studentesca_be.dto.record.PersonaRuoloRow;
-import it.impronta_studentesca_be.dto.record.StaffBaseDTO;
+import it.impronta_studentesca_be.dto.record.*;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.Ruolo;
 import org.springframework.data.domain.Page;
@@ -221,6 +218,19 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
     """)
     int setPasswordIfPresent(@Param("personaId") Long personaId,
                              @Param("hash") String hash);
+
+    @Query("""
+  select new it.impronta_studentesca_be.dto.record.StaffExportRow(
+    d.codice, c.nome, cast(c.tipoCorso as string), p.annoCorso, p.nome, p.cognome
+  )
+    from Persona p
+      join p.corsoDiStudi c
+      join c.dipartimento d
+      join p.ruoli r
+    where r.nome = 'STAFF'
+    order by d.codice, c.nome, p.cognome, p.nome
+  """)
+    List<StaffExportRow> exportStaffRows();
 
 
 }

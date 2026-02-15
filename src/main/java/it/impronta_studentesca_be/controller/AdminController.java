@@ -5,6 +5,7 @@ import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.service.AdminImprontaService;
+import it.impronta_studentesca_be.service.DocumentiService;
 import it.impronta_studentesca_be.service.PublicImprontaService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,9 @@ public class AdminController {
 
     @Autowired
     PublicImprontaService publicImprontaService;
+
+    @Autowired
+    private DocumentiService documentiService;
 
     //PERSONA
 
@@ -161,6 +165,23 @@ public class AdminController {
     public ResponseEntity creaUfficio(@RequestBody UfficioRequestDTO ufficio) {
         adminImprontaService.creaUfficio(ufficio);
         return ResponseEntity.ok().build();
+    }
+
+    // DOCUMENTI:
+
+    @GetMapping("/documenti/{id}")
+    public ResponseEntity<DocumentoLinkResponseDTO> getDocumentoLink(@PathVariable Long id) {
+        return ResponseEntity.ok(documentiService.getLinkById(id));
+    }
+
+    @GetMapping("/documenti/" + ApiPath.ALL_PATH )
+    public ResponseEntity<List<DocumentoLinkResponseDTO>> list() {
+        return ResponseEntity.ok(documentiService.listAll());
+    }
+
+    @GetMapping("/documenti/" + ApiPath.STAFF_PATH + "/excell" )
+    public ResponseEntity<DocumentoLinkResponseDTO> staffExcell() {
+        return ResponseEntity.ok(documentiService.exportStaffExcel());
     }
 
 
