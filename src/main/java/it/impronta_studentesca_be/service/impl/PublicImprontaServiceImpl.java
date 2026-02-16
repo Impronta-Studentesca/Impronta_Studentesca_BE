@@ -668,5 +668,10 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
        emailService.sendLinkPasswordUtente(persona.getId(), email, persona.getNome(), true);
     }
 
+    @Override
+    public void richiestaCreaPassword(Long id, String nome, String email) {
+        emailService.sendLinkPasswordUtente(id, email, nome, false);
+    }
+
 
 }

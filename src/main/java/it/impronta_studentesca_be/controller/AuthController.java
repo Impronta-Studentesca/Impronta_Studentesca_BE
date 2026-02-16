@@ -1,10 +1,7 @@
 package it.impronta_studentesca_be.controller;
 
 import it.impronta_studentesca_be.constant.ApiPath;
-import it.impronta_studentesca_be.dto.LoginRequestDTO;
-import it.impronta_studentesca_be.dto.LoginResponseDTO;
-import it.impronta_studentesca_be.dto.PasswordSetRequest;
-import it.impronta_studentesca_be.dto.PersonaConRappresentanzeResponseDTO;
+import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.service.PublicImprontaService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -72,6 +69,13 @@ public class AuthController {
         publicImprontaService.richiestaModificaPassword(email);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/richiesta/crea/password")
+    public ResponseEntity<Void> richiestaCreaPassword(@RequestBody PersonaMiniRequestDTO req) {
+        publicImprontaService.richiestaCreaPassword(req.getId(), req.getNome(), req.getEmail());
+        return ResponseEntity.ok().build(); // oppure noContent().build()
+    }
+
 
 
 
