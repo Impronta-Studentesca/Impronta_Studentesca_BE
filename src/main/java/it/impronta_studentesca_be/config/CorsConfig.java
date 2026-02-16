@@ -15,8 +15,7 @@ import java.util.List;
 @Profile("prod")
 public class CorsConfig {
 
-    // es: http://localhost:4200,https://impronta-studentesca-bo.onrender.com
-    @Value("${app.cors.allowed-origins:http://localhost:4200}")
+    @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
 
     @Bean
@@ -31,7 +30,8 @@ public class CorsConfig {
         config.setAllowedOrigins(origins);
 
         config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        // ✅ QUI
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));
 
         config.setAllowCredentials(false);
 
