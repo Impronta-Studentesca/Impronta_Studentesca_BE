@@ -306,21 +306,20 @@ public class EmailServiceImpl implements EmailService {
 
     private Object[] buildInlineLogoAttachment() {
         try {
-            // METTI QUESTO FILE: src/main/resources/static/Logo_Impronta_round_64.png
-            ClassPathResource res = new ClassPathResource("static/Logo_Impronta_round_64.png");
+            ClassPathResource res = new ClassPathResource("static/Logo_Impronta_round_160.png");
             byte[] bytes = StreamUtils.copyToByteArray(res.getInputStream());
             String b64 = Base64.getEncoder().encodeToString(bytes);
 
             Map<String, Object> inline = Map.of(
                     "ContentType", "image/png",
-                    "Filename", "Logo_Impronta_round_64.png",
+                    "Filename", "Logo_Impronta_round_160.png",
                     "Base64Content", b64,
                     "ContentID", "logo-impronta"
             );
 
             return new Object[]{inline};
         } catch (Exception e) {
-            log.warn("IMPOSSIBILE CARICARE LOGO INLINE (static/Logo_Impronta_round_64.png). Invio email senza logo.", e);
+            log.warn("IMPOSSIBILE CARICARE LOGO INLINE (static/Logo_Impronta_round_160.png). Invio email senza logo.", e);
             return new Object[0];
         }
     }
