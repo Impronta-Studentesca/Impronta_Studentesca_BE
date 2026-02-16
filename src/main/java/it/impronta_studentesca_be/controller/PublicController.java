@@ -210,5 +210,11 @@ public class PublicController {
         return ResponseEntity.ok(publicImprontaService.getRappresentanteAll());
     }
 
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        log.info("PING");
+        return ResponseEntity.ok("OK");
+    }
+
 
 }
