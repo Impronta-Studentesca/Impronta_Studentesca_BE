@@ -24,12 +24,10 @@ public class EmailServiceImpl implements EmailService {
 
     private static final String MAILJET_SEND_URL = "https://api.mailjet.com/v3.1/send";
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Autowired
     private PasswordTokenService passwordTokenService;
-
 
     @Value("${mailjet.api.key}")
     private String apiKey;
@@ -69,12 +67,16 @@ public class EmailServiceImpl implements EmailService {
 
             String email = mailPersona.trim().toLowerCase(Locale.ROOT);
 
+            // route FE: /password/{azione}/{personaId}?token=...
             String action = isModifica ? "modifica" : "crea";
 
+            // 1) token
             String token = passwordTokenService.createPasswordToken(personaId, isModifica);
 
+            // 2) link FE
             String link = buildPasswordLink(action, personaId, token);
 
+            // 3) contenuto
             final String subject;
             final String html;
             final String text;
@@ -89,9 +91,18 @@ public class EmailServiceImpl implements EmailService {
                 text = buildResetText(link, nomePersona);
             }
 
-            List<Map<String, Object>> inlined = buildInlineLogoAttachment();
+            // 4) logo inline
+            Object[] inlined = buildInlineLogoAttachment();
 
-            sendMailjetHtml(email, nomePersona, subject, html, text, inlined);
+            // 5) invio (FIX: ora passo toName + TextPart)
+            sendMailjetHtml(
+                    email,
+                    nomePersona,     // toName
+                    subject,
+                    html,
+                    text,
+                    inlined
+            );
 
             log.info("FINE INVIO EMAIL LINK PASSWORD OK - PERSONA_ID={} - EMAIL={}", personaId, email);
 
@@ -117,102 +128,6 @@ public class EmailServiceImpl implements EmailService {
                 .build(true)
                 .toUriString();
     }
-
-    private List<Map<String, Object>> buildInlineLogoAttachment() {
-        try {
-            ClassPathResource res = new ClassPathResource("static/Logo_Impronta_160.png");
-            byte[] bytes = StreamUtils.copyToByteArray(res.getInputStream());
-            String b64 = Base64.getEncoder().encodeToString(bytes);
-
-            Map<String, Object> inline = Map.of(
-                    "ContentType", "image/png",
-                    "Filename", "Logo_Impronta_160.png",
-                    "Base64Content", b64,
-                    "ContentID", "logo-impronta"
-            );
-
-            return List.of(inline);
-        } catch (Exception e) {
-            log.warn("IMPOSSIBILE CARICARE LOGO INLINE (static/Logo_Impronta_160.png). Invio email senza logo.", e);
-            return List.of();
-        }
-    }
-
-    private void sendMailjetHtml(
-            String toEmail,
-            String toName,
-            String subject,
-            String htmlBody,
-            String textBody,
-            List<Map<String, Object>> inlinedAttachments
-    ) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBasicAuth(apiKey, apiSecret);
-
-        Map<String, Object> from = Map.of(
-                "Email", fromEmail,
-                "Name", fromName
-        );
-
-        Map<String, Object> to = Map.of(
-                "Email", toEmail,
-                "Name", (toName == null || toName.isBlank()) ? toEmail : toName
-        );
-
-        Map<String, Object> message = new HashMap<>();
-        message.put("From", from);
-        message.put("To", List.of(to));
-        message.put("Subject", subject);
-        message.put("HTMLPart", htmlBody);
-
-        if (textBody != null && !textBody.isBlank()) {
-            message.put("TextPart", textBody);
-        }
-
-        message.put("ReplyTo", Map.of(
-                "Email", replyEmail,
-                "Name", replyName
-        ));
-
-        message.put("TrackOpens", "disabled");
-        message.put("TrackClicks", "disabled");
-
-        if (inlinedAttachments != null && !inlinedAttachments.isEmpty()) {
-            message.put("InlinedAttachments", inlinedAttachments);
-        }
-
-        Map<String, Object> payload = Map.of("Messages", List.of(message));
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(
-                    MAILJET_SEND_URL,
-                    HttpMethod.POST,
-                    entity,
-                    String.class
-            );
-
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                log.error("MAILJET SEND FALLITO - STATUS={} - BODY={}",
-                        response.getStatusCodeValue(), safe(response.getBody()));
-                throw new RuntimeException("MAILJET SEND FALLITO: " + response.getBody());
-            }
-
-            log.info("EMAIL MAILJET INVIATA - TO={} - SUBJECT={} - STATUS={}",
-                    safe(toEmail), safe(subject), response.getStatusCodeValue());
-
-        } catch (Exception e) {
-            log.error("ERRORE INVIO EMAIL MAILJET - TO={} - SUBJECT={}", safe(toEmail), safe(subject), e);
-            throw e;
-        }
-    }
-
-    private String safe(String v) {
-        return v == null ? "NULL" : v.replaceAll("[\\r\\n]", "").trim();
-    }
-
 
     private String buildWelcomeHtml(String link, String nomePersona) {
         String saluto = buildSaluto(nomePersona);
@@ -389,4 +304,101 @@ public class EmailServiceImpl implements EmailService {
                 .replace("'", "&#39;");
     }
 
+    private Object[] buildInlineLogoAttachment() {
+        try {
+            ClassPathResource res = new ClassPathResource("static/Logo_Impronta_round_160.png");
+            byte[] bytes = StreamUtils.copyToByteArray(res.getInputStream());
+            String b64 = Base64.getEncoder().encodeToString(bytes);
+
+            Map<String, Object> inline = Map.of(
+                    "ContentType", "image/png",
+                    "Filename", "Logo_Impronta_round_160.png",
+                    "Base64Content", b64,
+                    "ContentID", "logo-impronta"
+            );
+
+            return new Object[]{inline};
+        } catch (Exception e) {
+            log.warn("IMPOSSIBILE CARICARE LOGO INLINE (static/Logo_Impronta_round_160.png). Invio email senza logo.", e);
+            return new Object[0];
+        }
+    }
+
+    private void sendMailjetHtml(
+            String toEmail,
+            String toName,
+            String subject,
+            String htmlBody,
+            String textBody,
+            Object[] inlinedAttachments
+    ) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBasicAuth(apiKey, apiSecret);
+
+            Map<String, Object> from = Map.of(
+                    "Email", fromEmail,
+                    "Name", fromName
+            );
+
+            Map<String, Object> to = Map.of(
+                    "Email", toEmail,
+                    "Name", (toName == null || toName.isBlank()) ? toEmail : toName
+            );
+
+            Map<String, Object> message = new HashMap<>();
+            message.put("From", from);
+            message.put("To", List.of(to));
+            message.put("Subject", subject);
+            message.put("HTMLPart", htmlBody);
+
+            // per deliverability
+            if (textBody != null && !textBody.isBlank()) {
+                message.put("TextPart", textBody);
+            }
+
+            // Reply-To (rispondi a gmail)
+            message.put("ReplyTo", Map.of(
+                    "Email", replyEmail,
+                    "Name", replyName
+            ));
+
+            // Tracking OFF (NON in Headers!)
+            message.put("TrackOpens", "disabled");
+            message.put("TrackClicks", "disabled");
+
+            if (inlinedAttachments != null && inlinedAttachments.length > 0) {
+                message.put("InlinedAttachments", List.of(inlinedAttachments));
+            }
+
+            Map<String, Object> payload = Map.of("Messages", List.of(message));
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    MAILJET_SEND_URL,
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.error("MAILJET SEND FALLITO - STATUS={} - BODY={}",
+                        response.getStatusCodeValue(), safe(response.getBody()));
+                throw new RuntimeException("MAILJET SEND FALLITO: " + response.getBody());
+            }
+
+            log.info("EMAIL MAILJET INVIATA - TO={} - SUBJECT={} - STATUS={}",
+                    safe(toEmail), safe(subject), response.getStatusCodeValue());
+
+        } catch (Exception e) {
+            log.error("ERRORE INVIO EMAIL MAILJET - TO={} - SUBJECT={}", safe(toEmail), safe(subject), e);
+            throw e;
+        }
+    }
+
+    private String safe(String v) {
+        return v == null ? "NULL" : v.replaceAll("[\\r\\n]", "").trim();
+    }
 }
