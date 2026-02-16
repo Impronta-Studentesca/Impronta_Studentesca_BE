@@ -30,8 +30,6 @@ public class EmailServiceImpl implements EmailService {
     @Autowired
     private PasswordTokenService passwordTokenService;
 
-    @Value("${mailjet.endpoint:https://api.mailjet.com}")
-    private String mailjetEndpoint;
 
     @Value("${mailjet.api.key}")
     private String apiKey;
@@ -120,14 +118,6 @@ public class EmailServiceImpl implements EmailService {
                 .toUriString();
     }
 
-    private String mailjetSendUrl() {
-        String base = (mailjetEndpoint == null || mailjetEndpoint.isBlank())
-                ? "https://api.mailjet.com"
-                : mailjetEndpoint.trim();
-        if (base.endsWith("/")) base = base.substring(0, base.length() - 1);
-        return base + "/v3.1/send";
-    }
-
     private List<Map<String, Object>> buildInlineLogoAttachment() {
         try {
             ClassPathResource res = new ClassPathResource("static/Logo_Impronta_160.png");
@@ -198,7 +188,7 @@ public class EmailServiceImpl implements EmailService {
 
         try {
             ResponseEntity<String> response = restTemplate.exchange(
-                    mailjetSendUrl(),
+                    MAILJET_SEND_URL,
                     HttpMethod.POST,
                     entity,
                     String.class
