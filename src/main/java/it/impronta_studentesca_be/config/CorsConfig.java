@@ -3,6 +3,7 @@ package it.impronta_studentesca_be.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -11,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Configuration
+@Profile("prod")
 public class CorsConfig {
 
     // es: http://localhost:4200,https://impronta-studentesca-bo.onrender.com
@@ -31,7 +33,7 @@ public class CorsConfig {
         config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
 
-        config.setAllowCredentials(true);
+        config.setAllowCredentials(false);
 
         // utile per download file (Excel/PDF)
         config.setExposedHeaders(List.of("Set-Cookie", "Content-Disposition"));

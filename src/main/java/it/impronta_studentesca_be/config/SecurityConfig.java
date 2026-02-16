@@ -3,6 +3,7 @@ package it.impronta_studentesca_be.config;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import it.impronta_studentesca_be.constant.ApiPath;
 import it.impronta_studentesca_be.security.PersonaUserDetailsService;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -35,6 +37,10 @@ public class SecurityConfig {
 
     @Autowired
     private PersonaUserDetailsService personaUserDetailsService;
+
+
+    @Value("${security.jwt.secret}")
+    private String jwtSecret;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -62,9 +68,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authenticationProvider(authenticationProvider())
 
-                // ✅ sessione attiva (default è IF_REQUIRED, ma lo metto esplicito)
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
+                // ✅ JWT = stateless (niente sessione / niente JSESSIONID)
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // ✅ abilita lettura token Bearer e validazione JWT
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                        )
+                )
 
                 // 🔹 Gestione errori di sicurezza (401 / 403) in JSON
                 .exceptionHandling(ex -> ex
@@ -127,6 +140,39 @@ public class SecurityConfig {
 
 
         return http.build();
+    }
+
+
+    @Bean
+    public JwtEncoder jwtEncoder() {
+        SecretKey key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        return new NimbusJwtEncoder(new ImmutableSecret<>(key));
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        SecretKey key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        return NimbusJwtDecoder.withSecretKey(key)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+    }
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter gac = new JwtGrantedAuthoritiesConverter();
+        gac.setAuthoritiesClaimName("authorities"); // ✅ il claim che metteremo nel token
+        gac.setAuthorityPrefix("");                 // ✅ così resta "DIRETTIVO" e non "SCOPE_..."
+
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(gac);
+        return converter;
+    }
+
+    @PostConstruct
+    void validateSecret() {
+        if (jwtSecret == null || jwtSecret.length() < 32) {
+            throw new IllegalStateException("security.jwt.secret deve essere >= 32 caratteri");
+        }
     }
 
 

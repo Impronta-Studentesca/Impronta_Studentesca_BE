@@ -16,4 +16,6 @@ public class LoginResponseDTO {
     private String cognome;
     private String email;
     private Set<String> ruoli;   // es. ["DIRETTIVO", "STAFF"]
+
+    private String token;
 }

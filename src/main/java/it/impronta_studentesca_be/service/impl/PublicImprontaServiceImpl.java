@@ -23,6 +23,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,12 +31,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -89,7 +93,13 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     private EmailService emailService;
 
     @Autowired
+    private JwtEncoder jwtEncoder;
+
+    @Autowired
     private Mapper mapper;
+
+    @Value("${security.jwt.ttl-seconds:3600}")
+    private long ttlSeconds;
 
 
     /// /////////////////////////////////////////////////////////////////////////
@@ -558,9 +568,26 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
 
 
+    private String generaToken(JwtClaimsSet claims) {
+        try {
+            log.info("INIZIO GENERAZIONE TOKEN JWT - SUBJECT={}", claims.getSubject());
 
+            var header = JwsHeader.with(MacAlgorithm.HS256).build();
+            var params = JwtEncoderParameters.from(header, claims);
 
-    @Override
+            String token = jwtEncoder.encode(params).getTokenValue();
+
+            log.info("TOKEN JWT GENERATO CON SUCCESSO - SUBJECT={} - EXPIRES_AT={}",
+                    claims.getSubject(), claims.getExpiresAt());
+
+            return token;
+
+        } catch (Exception ex) {
+            log.error("ERRORE GENERAZIONE TOKEN JWT - SUBJECT={}", claims.getSubject(), ex);
+            throw new JwtEncodingException("IMPOSSIBILE GENERARE IL TOKEN JWT", ex);
+        }
+    }
+
     public LoginResponseDTO login(HttpServletRequest request, HttpServletResponse response, LoginRequestDTO dto) {
 
         String email = dto != null && dto.getEmail() != null
@@ -579,15 +606,6 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
                     new UsernamePasswordAuthenticationToken(email, dto.getPassword())
             );
 
-            request.getSession(true);
-
-            SecurityContext context = SecurityContextHolder.createEmptyContext();
-            context.setAuthentication(authentication);
-            SecurityContextHolder.setContext(context);
-
-            SecurityContextRepository repo = new HttpSessionSecurityContextRepository();
-            repo.saveContext(context, request, response);
-
             PersonaUserDetails userDetails = (PersonaUserDetails) authentication.getPrincipal();
             if (userDetails == null || userDetails.getPersona() == null) {
                 log.error("LOGIN FALLITO - PRINCIPAL NON VALIDO - EMAIL={}", email);
@@ -601,24 +619,46 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
                     .map(Roles::getAuthority)
                     .collect(Collectors.toSet());
 
+            Instant now = Instant.now();
+            JwtClaimsSet claims = JwtClaimsSet.builder()
+                    .issuer("impronta-studentesca")
+                    .issuedAt(now)
+                    .expiresAt(now.plusSeconds(ttlSeconds))
+                    .subject(persona.getEmail())
+                    .claim("personaId", persona.getId())
+                    .claim("authorities", ruoli) // ✅ deve combaciare col converter
+                    .build();
+
+            String token = generaToken(claims);
+
             LoginResponseDTO responseDTO = new LoginResponseDTO();
             responseDTO.setId(persona.getId());
             responseDTO.setNome(persona.getNome());
             responseDTO.setCognome(persona.getCognome());
             responseDTO.setEmail(persona.getEmail());
             responseDTO.setRuoli(ruoli);
+            responseDTO.setToken(token);
 
-            log.info("LOGIN OK - PERSONA_ID={} - EMAIL={}", persona.getId(), email);
+            log.info("LOGIN OK - PERSONA_ID={} - EMAIL={} - RUOLI={}",
+                    persona.getId(), email, ruoli);
+
             return responseDTO;
 
         } catch (BadCredentialsException ex) {
             log.error("LOGIN FALLITO - BAD CREDENTIALS - EMAIL={}", email);
             throw new BadCredentialsException("CREDENZIALI ERRATE");
+
+        } catch (JwtEncodingException ex) {
+            // già loggato dentro generaToken, ma lo riloggiamo con contesto login
+            log.error("LOGIN FALLITO - ERRORE TOKEN JWT - EMAIL={}", email, ex);
+            throw ex;
+
         } catch (Exception ex) {
             log.error("LOGIN FALLITO - ERRORE INASPETTATO - EMAIL={}", email, ex);
             throw ex;
         }
     }
+
 
     @Override
     public void richiestaModificaPassword(String email) {
