@@ -24,7 +24,8 @@ public class EmailServiceImpl implements EmailService {
 
     private static final String MAILJET_SEND_URL = "https://api.mailjet.com/v3.1/send";
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Autowired
+    private RestTemplate restTemplate;
 
     @Autowired
     private PasswordTokenService passwordTokenService;
