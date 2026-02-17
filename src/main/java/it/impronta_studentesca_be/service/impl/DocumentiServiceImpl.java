@@ -17,8 +17,7 @@ import org.apache.poi.ss.util.AreaReference;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.*;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTTable;
-import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTTableStyleInfo;
+import org.openxmlformats.schemas.spreadsheetml.x2006.main.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -237,11 +236,38 @@ public class DocumentiServiceImpl implements DocumentiService {
                 table.setDisplayName("StaffTable");
 
                 CTTable ct = table.getCTTable();
-                ct.addNewAutoFilter().setRef(area.formatAsString());
+                ct.setRef(area.formatAsString());
 
-                CTTableStyleInfo style = ct.addNewTableStyleInfo();
+// ✅ AutoFilter: crea o riusa
+                CTAutoFilter af = ct.getAutoFilter();
+                if (af == null) af = ct.addNewAutoFilter();
+                af.setRef(area.formatAsString());
+
+// ✅ Colonne: crea o riusa
+                CTTableColumns cols = ct.getTableColumns();
+                if (cols == null) cols = ct.addNewTableColumns();
+
+                cols.setCount(headers.length);
+
+// reset colonne (evita xml incoerente)
+                int existing = cols.sizeOfTableColumnArray();
+                for (int i = existing - 1; i >= 0; i--) {
+                    cols.removeTableColumn(i); // se non compila, vedi nota sotto
+                }
+
+                for (int i = 0; i < headers.length; i++) {
+                    CTTableColumn col = cols.addNewTableColumn();
+                    col.setId(i + 1);
+                    col.setName(headers[i]);
+                }
+
+// ✅ Stile: crea o riusa
+                CTTableStyleInfo style = ct.getTableStyleInfo();
+                if (style == null) style = ct.addNewTableStyleInfo();
+
                 style.setName("TableStyleMedium9");
                 style.setShowRowStripes(true);
+
 
                 log.info("TABELLA EXCEL CREATA - AREA={}", area.formatAsString());
             } else {
