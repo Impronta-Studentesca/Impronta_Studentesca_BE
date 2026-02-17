@@ -220,11 +220,10 @@ public class DocumentiServiceImpl implements DocumentiService {
                 sheet.autoSizeColumn(i);
             }
 
-            // Filtri + Tabella
-            int lastRow = Math.max(0, rows != null ? rows.size() : 0);
-            sheet.setAutoFilter(new CellRangeAddress(0, lastRow, 0, headers.length - 1));
+            // ✅ Tabella con filtri (NO sheet.setAutoFilter!)
+            int lastRow = (rows != null) ? rows.size() : 0; // header=0, dati=1..rows.size()
+            if (headers.length > 0) {
 
-            if (rows != null && !rows.isEmpty()) {
                 AreaReference area = new AreaReference(
                         new CellReference(0, 0),
                         new CellReference(lastRow, headers.length - 1),
@@ -238,22 +237,29 @@ public class DocumentiServiceImpl implements DocumentiService {
                 CTTable ct = table.getCTTable();
                 ct.setRef(area.formatAsString());
 
-// ✅ AutoFilter: crea o riusa
+                // proprietà base (aiuta compatibilità)
+                ct.setHeaderRowCount(1L);
+                ct.setTotalsRowShown(false);
+
+                // ✅ AutoFilter SOLO sulla tabella
                 CTAutoFilter af = ct.getAutoFilter();
                 if (af == null) af = ct.addNewAutoFilter();
                 af.setRef(area.formatAsString());
 
-// ✅ Colonne: crea o riusa
+                // ✅ TableColumns coerenti
                 CTTableColumns cols = ct.getTableColumns();
                 if (cols == null) cols = ct.addNewTableColumns();
 
-                cols.setCount(headers.length);
+                // pulizia colonne esistenti (evita XML incoerente)
+                for (int i = cols.sizeOfTableColumnArray() - 1; i >= 0; i--) {
+                    // usa QUESTO (quasi sempre c'è)
+                  //  cols.removeTableColumnArray(i);
 
-// reset colonne (evita xml incoerente)
-                int existing = cols.sizeOfTableColumnArray();
-                for (int i = existing - 1; i >= 0; i--) {
-                    cols.removeTableColumn(i); // se non compila, vedi nota sotto
+                    // se nel tuo POI non compila, commenta la riga sopra e usa:
+                     cols.removeTableColumn(i);
                 }
+
+                cols.setCount(headers.length);
 
                 for (int i = 0; i < headers.length; i++) {
                     CTTableColumn col = cols.addNewTableColumn();
@@ -261,17 +267,13 @@ public class DocumentiServiceImpl implements DocumentiService {
                     col.setName(headers[i]);
                 }
 
-// ✅ Stile: crea o riusa
+                // ✅ Stile (riusa o crea)
                 CTTableStyleInfo style = ct.getTableStyleInfo();
                 if (style == null) style = ct.addNewTableStyleInfo();
-
                 style.setName("TableStyleMedium9");
                 style.setShowRowStripes(true);
 
-
                 log.info("TABELLA EXCEL CREATA - AREA={}", area.formatAsString());
-            } else {
-                log.info("NESSUNA RIGA - TABELLA EXCEL NON CREATA");
             }
 
             wb.write(out);
@@ -284,6 +286,7 @@ public class DocumentiServiceImpl implements DocumentiService {
             throw new RuntimeException("Errore creazione Excel staff", e);
         }
     }
+
 
     @Override
     public DocumentoLinkResponseDTO getLinkById(Long id) {
