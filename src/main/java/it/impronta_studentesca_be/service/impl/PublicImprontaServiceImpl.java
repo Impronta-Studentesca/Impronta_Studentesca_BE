@@ -7,18 +7,11 @@ import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.dto.record.CorsoMiniDTO;
 import it.impronta_studentesca_be.dto.record.DipartimentoResponseDTO;
 import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
-import it.impronta_studentesca_be.dto.record.RappresentanzaAggRow;
 import it.impronta_studentesca_be.entity.Persona;
-import it.impronta_studentesca_be.entity.PersonaRappresentanza;
 import it.impronta_studentesca_be.entity.Ruolo;
 import it.impronta_studentesca_be.exception.EntityNotFoundException;
-import it.impronta_studentesca_be.exception.GetAllException;
-import it.impronta_studentesca_be.repository.OrganoRappresentanzaRepository;
-import it.impronta_studentesca_be.repository.PersonaRappresentanzaRepository;
-import it.impronta_studentesca_be.repository.PersonaRepository;
 import it.impronta_studentesca_be.security.PersonaUserDetails;
 import it.impronta_studentesca_be.service.*;
-import it.impronta_studentesca_be.util.Mapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -28,13 +21,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,25 +49,16 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     private PersonaService personaService;
 
     @Autowired
-    private PersonaRepository personaRepository;
-
-    @Autowired
     private PersonaDirettivoService personaDirettivoService;
 
     @Autowired
     private PersonaRappresentanzaService personaRappresentanzaService;
 
     @Autowired
-    private PersonaRappresentanzaRepository personaRappresentanzaRepository;
-
-    @Autowired
     private DirettivoService direttivoService;
 
     @Autowired
     private OrganoRappresentanzaService organoRappresentanzaService;
-
-    @Autowired
-    private OrganoRappresentanzaRepository organoRappresentanzaRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -94,9 +74,6 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
     @Autowired
     private JwtEncoder jwtEncoder;
-
-    @Autowired
-    private Mapper mapper;
 
     @Value("${security.jwt.ttl-seconds:3600}")
     private long ttlSeconds;
@@ -235,24 +212,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     @Transactional(readOnly = true)
     public PersonaRappresentanzaResponseDTO getPersonaRappresentanzaById(Long id) {
 
-        log.info("RECUPERO RAPPRESENTANZA (DTO) - ID={}", id);
-
-        try {
-            PersonaRappresentanzaResponseDTO dto = personaRappresentanzaRepository.findDtoById(id)
-                    .orElseThrow(() -> {
-                        log.error("RAPPRESENTANZA NON TROVATA (DTO) - ID={}", id);
-                        return new EntityNotFoundException(PersonaRappresentanza.class.getSimpleName(), "ID", id);
-                    });
-
-            log.info("RAPPRESENTANZA TROVATA (DTO) - ID={}", id);
-            return dto;
-
-        } catch (EntityNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("ERRORE RECUPERO RAPPRESENTANZA (DTO) - ID={}", id, e);
-            throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLA RAPPRESENTANZA");
-        }
+        return personaRappresentanzaService.getDtoById(id);
     }
 
 
@@ -260,85 +220,14 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     @Transactional(readOnly = true)
     public List<PersonaRappresentanzaResponseDTO> getRappresentanteByOrgano(Long organoId) {
 
-        log.info("RECUPERO RAPPRESENTANTI (DTO) PER ORGANO_ID={}", organoId);
-
-        try {
-            List<PersonaRappresentanzaResponseDTO> list = personaRappresentanzaRepository.findDtoByOrganoId(organoId);
-
-            if (!list.isEmpty()) {
-                log.info("TROVATI {} RAPPRESENTANTI (DTO) PER ORGANO_ID={}", list.size(), organoId);
-                return list;
-            }
-
-            log.info("NESSUN RAPPRESENTANTE PER ORGANO_ID={}", organoId);
-
-            // SE VUOTO, CONTROLLO ESISTENZA ORGANO (COME HAI FATTO PER DIPARTIMENTO)
-            boolean esiste = organoRappresentanzaRepository.existsById(organoId);
-            if (!esiste) {
-                log.error("ORGANO NON TROVATO - ID={}", organoId);
-                throw new EntityNotFoundException("OrganoRappresentanza", "ID", organoId);
-            }
-
-            return list;
-
-        } catch (EntityNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("ERRORE RECUPERO RAPPRESENTANTI (DTO) PER ORGANO_ID={}", organoId, e);
-            throw new GetAllException("ERRORE DURANTE IL RECUPERO DEI RAPPRESENTANTI PER ORGANO");
-        }
+        return personaRappresentanzaService.getDtoByOrgano(organoId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PersonaConRappresentanzeResponseDTO getRappresentanteByPersona(Long personaId) {
 
-        log.info("RECUPERO RAPPRESENTANZE PER PERSONA_ID={}", personaId);
-
-        try {
-            List<RappresentanzaAggRow> rows = personaRappresentanzaRepository.findAggRowsByPersonaId(personaId);
-
-            PersonaResponseDTO personaDTO;
-            List<RuoloRappresentanzaDTO> cariche;
-
-            if (rows.isEmpty()) {
-                log.info("NESSUNA RAPPRESENTANZA PER PERSONA_ID={}", personaId);
-
-                personaDTO = personaRepository.findLiteDtoById(personaId)
-                        .orElseThrow(() -> {
-                            log.error("PERSONA NON TROVATA - ID={}", personaId);
-                            return new EntityNotFoundException("Persona", "ID", personaId);
-                        });
-
-                cariche = List.of();
-            } else {
-                RappresentanzaAggRow first = rows.get(0);
-                personaDTO = new PersonaResponseDTO(first.personaId(), first.personaNome(), first.personaCognome());
-
-                cariche = rows.stream()
-                        .map(r -> RuoloRappresentanzaDTO.builder()
-                                .id(r.prId())
-                                .organo(new OrganoRappresentanzaDTO(r.organoId(), r.organoCodice(), r.organoNome()))
-                                .dataInizio(r.dataInizio())
-                                .dataFine(r.dataFine())
-                                .build()
-                        )
-                        .toList();
-            }
-
-            log.info("FINE RECUPERO RAPPRESENTANZE PER PERSONA_ID={} - CARICHE={}", personaId, cariche.size());
-
-            return PersonaConRappresentanzeResponseDTO.builder()
-                    .persona(personaDTO)
-                    .cariche(cariche)
-                    .build();
-
-        } catch (EntityNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("ERRORE RECUPERO RAPPRESENTANZE PER PERSONA_ID={}", personaId, e);
-            throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLE RAPPRESENTANZE PER PERSONA");
-        }
+      return personaRappresentanzaService.getDtoByPersona(personaId);
     }
 
 
@@ -347,47 +236,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     @Transactional(readOnly = true)
     public List<PersonaConRappresentanzeResponseDTO> getRappresentanteAll() {
 
-        log.info("RECUPERO TUTTI I RAPPRESENTANTI (AGGREGATI)");
-
-        try {
-            List<RappresentanzaAggRow> rows = personaRappresentanzaRepository.findAggRowsAll();
-
-            if (rows.isEmpty()) {
-                log.info("NESSUN RAPPRESENTANTE TROVATO");
-                return List.of();
-            }
-
-            // MAP PERSONA_ID -> DTO IN COSTRUZIONE
-            Map<Long, PersonaConRappresentanzeResponseDTO> map = new LinkedHashMap<>();
-            Map<Long, List<RuoloRappresentanzaDTO>> caricheMap = new LinkedHashMap<>();
-
-            for (RappresentanzaAggRow r : rows) {
-                map.computeIfAbsent(r.personaId(), pid -> PersonaConRappresentanzeResponseDTO.builder()
-                        .persona(new PersonaResponseDTO(r.personaId(), r.personaNome(), r.personaCognome()))
-                        .cariche(new java.util.ArrayList<>())
-                        .build()
-                );
-
-                // aggiungo carica
-                map.get(r.personaId()).getCariche().add(
-                        RuoloRappresentanzaDTO.builder()
-                                .id(r.prId())
-                                .organo(new OrganoRappresentanzaDTO(r.organoId(), r.organoCodice(), r.organoNome()))
-                                .dataInizio(r.dataInizio())
-                                .dataFine(r.dataFine())
-                                .build()
-                );
-            }
-
-            List<PersonaConRappresentanzeResponseDTO> result = new ArrayList<>(map.values());
-
-            log.info("FINE RECUPERO TUTTI I RAPPRESENTANTI (AGGREGATI) - PERSONE={}", result.size());
-            return result;
-
-        } catch (Exception e) {
-            log.error("ERRORE RECUPERO TUTTI I RAPPRESENTANTI (AGGREGATI)", e);
-            throw new GetAllException("ERRORE DURANTE IL RECUPERO DI TUTTI I RAPPRESENTANTI");
-        }
+        return personaRappresentanzaService.getDtoAll();
     }
 
 
@@ -496,11 +345,11 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
             // 2) UPDATE CONDIZIONALE (NO SELECT)
             String hash = passwordEncoder.encode(password);
 
-            int updated = personaRepository.setPasswordIfEmpty(personaId, hash);
+            int updated = personaService.setPasswordIfEmpty(personaId, hash);
 
             if (updated != 1) {
                 // qui o persona non esiste, o password già presente
-                boolean exists = personaRepository.existsById(personaId);
+                boolean exists = personaService.existsById(personaId);
                 if (!exists) {
                     log.error("PERSONA NON TROVATA - PERSONA_ID={}", personaId);
                     throw new EntityNotFoundException("Persona", "ID", personaId);
@@ -542,11 +391,11 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
             // 2) UPDATE CONDIZIONALE (NO SELECT)
             String hash = passwordEncoder.encode(password);
 
-            int updated = personaRepository.setPasswordIfPresent(personaId, hash);
+            int updated = personaService.setPasswordIfPresent(personaId, hash);
 
             if (updated != 1) {
                 // qui o persona non esiste, o password non era presente
-                boolean exists = personaRepository.existsById(personaId);
+                boolean exists = personaService.existsById(personaId);
                 if (!exists) {
                     log.error("PERSONA NON TROVATA - PERSONA_ID={}", personaId);
                     throw new EntityNotFoundException("Persona", "ID", personaId);

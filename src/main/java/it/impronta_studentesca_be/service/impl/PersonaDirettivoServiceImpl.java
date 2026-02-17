@@ -3,6 +3,7 @@ package it.impronta_studentesca_be.service.impl;
 import it.impronta_studentesca_be.constant.Roles;
 import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.record.PersonaDirettivoMiniDTO;
+import it.impronta_studentesca_be.dto.record.PersonaDirettivoRow;
 import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.*;
 import it.impronta_studentesca_be.exception.*;
@@ -17,10 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.LinkedHashMap;
 
 @Service
 @Slf4j
@@ -102,7 +99,7 @@ public class PersonaDirettivoServiceImpl implements PersonaDirettivoService {
 
     @Override
     public void removePersonaFromDirettivo(Long personaId, Long direttivoId) {
-        log.info("RIMOZIONE DI {} CON ID: {} DAL DIRETTIVO {} CON ID: {}", personaId,  direttivoId);
+        log.info("RIMOZIONE PERSONA_ID: {} DAL DIRETTIVO_ID: {}", personaId,  direttivoId);
         PersonaDirettivoId id = new PersonaDirettivoId(personaId, direttivoId);
 
         try {
@@ -161,92 +158,6 @@ public class PersonaDirettivoServiceImpl implements PersonaDirettivoService {
 
 
     @Override
-    public List<PersonaDirettivo> getDirettivoGeneraleAttivoByPersona(Long personaId) {
-        LocalDate today = LocalDate.now();
-        log.info("INIZIO RECUPERO DIRETTIVO GENERALE ATTIVO PER PERSONA_ID={} - TODAY={}", personaId, today);
-
-        try {
-            List<PersonaDirettivo> a;
-            try {
-                a = personaDirettivoRepository
-                        .findByPersona_IdAndDirettivo_TipoAndDirettivo_DipartimentoIsNullAndDirettivo_InizioMandatoLessThanEqualAndDirettivo_FineMandatoIsNull(
-                                personaId, TipoDirettivo.GENERALE, today
-                        );
-                log.info("TROVATI {} RECORD DIRETTIVO GENERALE (FINE_MANDATO NULL) PER PERSONA_ID={}",
-                        a == null ? 0 : a.size(), personaId);
-            } catch (Exception ex) {
-                log.error("ERRORE QUERY DIRETTIVO GENERALE (FINE_MANDATO NULL) PER PERSONA_ID={}", personaId, ex);
-                a = List.of();
-            }
-
-            List<PersonaDirettivo> b;
-            try {
-                b = personaDirettivoRepository
-                        .findByPersona_IdAndDirettivo_TipoAndDirettivo_DipartimentoIsNullAndDirettivo_InizioMandatoLessThanEqualAndDirettivo_FineMandatoAfter(
-                                personaId, TipoDirettivo.GENERALE, today, today
-                        );
-                log.info("TROVATI {} RECORD DIRETTIVO GENERALE (FINE_MANDATO > TODAY) PER PERSONA_ID={}",
-                        b == null ? 0 : b.size(), personaId);
-            } catch (Exception ex) {
-                log.error("ERRORE QUERY DIRETTIVO GENERALE (FINE_MANDATO > TODAY) PER PERSONA_ID={}", personaId, ex);
-                b = List.of();
-            }
-
-            // merge + dedup (per sicurezza) mantenendo ordine
-            List<PersonaDirettivo> result = Stream.concat(a.stream(), b.stream())
-                    .filter(pd -> pd != null && pd.getId() != null)
-                    .collect(Collectors.collectingAndThen(
-                            Collectors.toMap(
-                                    PersonaDirettivo::getId,
-                                    Function.identity(),
-                                    (x, y) -> x,
-                                    LinkedHashMap::new
-                            ),
-                            m -> List.copyOf(m.values())
-                    ));
-
-            log.info("FINE RECUPERO DIRETTIVO GENERALE ATTIVO PER PERSONA_ID={} - TOTALE={}", personaId, result.size());
-            log.debug("DETTAGLIO DIRETTIVO GENERALE ATTIVO PER PERSONA_ID={} - RUOLI={}",
-                    personaId,
-                    result.stream()
-                            .map(PersonaDirettivo::getRuoloNelDirettivo)
-                            .filter(r -> r != null && !r.isBlank())
-                            .distinct()
-                            .toList()
-            );
-
-            return result;
-
-        } catch (Exception ex) {
-            log.error("ERRORE RECUPERO DIRETTIVO GENERALE ATTIVO PER PERSONA_ID={}", personaId, ex);
-            throw new GetAllException("ERRORE DURANTE IL RECUPERO DEL DIRETTIVO GENERALE ATTIVO PER PERSONA");
-        }
-    }
-
-    @Override
-    public List<String> getRuoliDirettivoGeneraleAttivi(Long personaId) {
-        log.info("INIZIO RECUPERO RUOLI DIRETTIVO GENERALE ATTIVI PER PERSONA_ID={}", personaId);
-
-        try {
-            List<String> ruoli = getDirettivoGeneraleAttivoByPersona(personaId).stream()
-                    .map(PersonaDirettivo::getRuoloNelDirettivo)
-                    .filter(r -> r != null && !r.isBlank())
-                    .distinct()
-                    .toList();
-
-            log.info("FINE RECUPERO RUOLI DIRETTIVO GENERALE ATTIVI PER PERSONA_ID={} - RUOLI_TROVATI={}",
-                    personaId, ruoli.size());
-            log.debug("RUOLI DIRETTIVO GENERALE ATTIVI PER PERSONA_ID={} - {}", personaId, ruoli);
-
-            return ruoli;
-
-        } catch (Exception ex) {
-            log.error("ERRORE RECUPERO RUOLI DIRETTIVO GENERALE ATTIVI PER PERSONA_ID={}", personaId, ex);
-            throw new GetAllException("ERRORE DURANTE IL RECUPERO DEI RUOLI DIRETTIVO GENERALE ATTIVI");
-        }
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public List<PersonaMiniDTO> getPersonaByRuoloNotInDirettivo(Roles ruolo, Long direttivoId) {
 
@@ -266,6 +177,19 @@ public class PersonaDirettivoServiceImpl implements PersonaDirettivoService {
                     ruolo, direttivoId, ex);
             throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLE PERSONE");
         }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public boolean  existsByPersona_IdAndDirettivo_Tipo(Long personaId, TipoDirettivo tipoDirettivo){
+        return personaDirettivoRepository.existsByPersona_IdAndDirettivo_Tipo(personaId, tipoDirettivo);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<PersonaDirettivoRow> findRuoliDirettivoGeneraleAttiviByPersonaIds(List<Long> ids, TipoDirettivo tipoDirettivo, LocalDate today){
+        return personaDirettivoRepository
+                .findRuoliDirettivoGeneraleAttiviByPersonaIds(ids, TipoDirettivo.GENERALE, today);
     }
 
 

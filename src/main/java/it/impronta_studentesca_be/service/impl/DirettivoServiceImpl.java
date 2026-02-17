@@ -214,6 +214,14 @@ public class DirettivoServiceImpl implements DirettivoService {
         }
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public TipoDirettivo findTipoById(Long direttivoId){
+        return direttivoRepository.findTipoById(direttivoId)
+                .orElseThrow(() -> new EntityNotFoundException("DIRETTIVO NON TROVATO - ID=" + direttivoId));
+
+    }
+
 
 }
 

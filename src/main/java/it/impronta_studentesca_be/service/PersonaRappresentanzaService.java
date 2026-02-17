@@ -1,6 +1,8 @@
 package it.impronta_studentesca_be.service;
 
+import it.impronta_studentesca_be.dto.PersonaConRappresentanzeResponseDTO;
 import it.impronta_studentesca_be.dto.PersonaRappresentanzaResponseDTO;
+import it.impronta_studentesca_be.dto.record.PersonaLabelRow;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,8 +14,6 @@ public interface PersonaRappresentanzaService {
     void create(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine);
     void checkExistById(Long id);
 
-    void checkExistByPersonaIdEOraganoId(Long personaId, Long organoRappresentanzaId);
-
     void update(Long personaId, Long organoId, LocalDate dataInizio, LocalDate dataFine);
 
     PersonaRappresentanza delete(Long id);
@@ -21,14 +21,28 @@ public interface PersonaRappresentanzaService {
     PersonaRappresentanza getById(Long id);
 
     @Transactional(readOnly = true)
-    PersonaRappresentanzaResponseDTO getPersonaRappresentanzaById(Long id);
+    PersonaRappresentanzaResponseDTO getDtoById(Long id);
 
-    List<PersonaRappresentanza> getByPersona(Long personaId);
+    @Transactional(readOnly = true)
+    List<PersonaRappresentanzaResponseDTO> getDtoByOrgano(Long organoId);
 
-    List<PersonaRappresentanza> getAttiveByPersona(Long personaId);
+    @Transactional(readOnly = true)
+    PersonaConRappresentanzeResponseDTO getDtoByPersona(Long personaId);
 
-    List<PersonaRappresentanza> getByOrganoId(Long organoId);
+    @Transactional(readOnly = true)
+    List<PersonaConRappresentanzeResponseDTO> getDtoAll();
 
     List<PersonaRappresentanza> getAll();
 
+    @Transactional
+    Long findIdAttivaByPersonaIdAndOrganoNome(Long personaId, String organoNome, LocalDate today);
+
+    @Transactional
+    Long countAttiveByPersonaId(Long personaId, LocalDate today);
+
+    @Transactional
+    Long findPersona_IdById(Long personaRappresentanzaId);
+
+    @Transactional
+    List<PersonaLabelRow> findRappresentanzeAttiveLabelsByPersonaIds(List<Long> ids, LocalDate today);
 }

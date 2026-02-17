@@ -1,6 +1,8 @@
 package it.impronta_studentesca_be.service.impl;
 
-import it.impronta_studentesca_be.dto.PersonaRappresentanzaResponseDTO;
+import it.impronta_studentesca_be.dto.*;
+import it.impronta_studentesca_be.dto.record.PersonaLabelRow;
+import it.impronta_studentesca_be.dto.record.RappresentanzaAggRow;
 import it.impronta_studentesca_be.entity.OrganoRappresentanza;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.PersonaRappresentanza;
@@ -15,7 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -148,14 +153,6 @@ public class PersonaRappresentanzaServiceImpl implements PersonaRappresentanzaSe
         }
     }
 
-    @Override
-    public void checkExistByPersonaIdEOraganoId(Long personaId, Long organoRappresentanzaId) {
-        if (!personaRappresentanzaRepository.existsByPersona_IdAndOrganoRappresentanza_Id(personaId, organoRappresentanzaId)) {
-            log.error("NON TROVATA CORRISPONDEZA TRA PERSONA_ ID: {} E ORGANO_ID: {}", personaId, organoRappresentanzaId);
-            throw new EntityNotFoundException(PersonaRappresentanza.class.getSimpleName(), "id", personaId);
-        }
-    }
-
 
 
 
@@ -173,9 +170,11 @@ public class PersonaRappresentanzaServiceImpl implements PersonaRappresentanzaSe
                 });
     }
 
+
+
     @Transactional(readOnly = true)
     @Override
-    public PersonaRappresentanzaResponseDTO getPersonaRappresentanzaById(Long id) {
+    public PersonaRappresentanzaResponseDTO getDtoById(Long id) {
 
         log.info("RECUPERO RAPPRESENTANZA (DTO) - ID={}", id);
 
@@ -197,98 +196,137 @@ public class PersonaRappresentanzaServiceImpl implements PersonaRappresentanzaSe
         }
     }
 
-
+    @Transactional(readOnly = true)
     @Override
-    public List<PersonaRappresentanza> getByPersona(Long personaId) {
-        log.info("RECUPERO RAPPRESENTANTI PER PERSONA_ID={}", personaId);
+    public List<PersonaRappresentanzaResponseDTO> getDtoByOrgano(Long organoId) {
+
+        log.info("RECUPERO RAPPRESENTANTI (DTO) PER ORGANO_ID={}", organoId);
 
         try {
+            List<PersonaRappresentanzaResponseDTO> list = personaRappresentanzaRepository.findDtoByOrganoId(organoId);
 
-            // 2) Recupero listaCariche di studio
-            List<PersonaRappresentanza> listaCariche = personaRappresentanzaRepository.findByPersona_Id(personaId);
-
-            if (listaCariche.isEmpty()) {
-                log.info("NESSUN RAPPRESENTANTE PER PERSONA_ID={}", personaId);
-            } else {
-                log.info("TROVATI {} RAPPRESENTANTI PER PERSONA_ID={}", listaCariche.size(), personaId);
+            if (!list.isEmpty()) {
+                log.info("TROVATI {} RAPPRESENTANTI (DTO) PER ORGANO_ID={}", list.size(), organoId);
+                return list;
             }
 
-            return listaCariche;
+            log.info("NESSUN RAPPRESENTANTE PER ORGANO_ID={}", organoId);
 
-        } catch (EntityNotFoundException ex) {
-            // La rilanciamo così viene gestita dal GlobalExceptionHandler con 404
-            throw ex;
-        } catch (Exception ex) {
-            // Qualsiasi altro errore inaspettato
-            log.error("ERRORE DURANTE IL RECUPERO DEI RAPPRESENTANTI PER PERSONA_ID={}", personaId, ex);
-            throw new GetAllException(
-                    "Errore durante il recupero delle cariche per persona " + PersonaRappresentanza.class.getSimpleName()
-            );
+            // SE VUOTO, CONTROLLO ESISTENZA ORGANO (COME HAI FATTO PER DIPARTIMENTO)
+            boolean esiste = organoRappresentanzaRepository.existsById(organoId);
+            if (!esiste) {
+                log.error("ORGANO NON TROVATO - ID={}", organoId);
+                throw new EntityNotFoundException("OrganoRappresentanza", "ID", organoId);
+            }
+
+            return list;
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO RAPPRESENTANTI (DTO) PER ORGANO_ID={}", organoId, e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DEI RAPPRESENTANTI PER ORGANO");
         }
     }
 
+    @Transactional(readOnly = true)
     @Override
-    public List<PersonaRappresentanza> getAttiveByPersona(Long personaId) {
-        LocalDate today = LocalDate.now();
-        log.info("INIZIO RECUPERO RAPPRESENTANZE ATTIVE PER PERSONA_ID={} - DATA_ODIERNA={}", personaId, today);
+    public PersonaConRappresentanzeResponseDTO getDtoByPersona(Long personaId) {
+
+        log.info("RECUPERO RAPPRESENTANZE PER PERSONA_ID={}", personaId);
 
         try {
-            List<PersonaRappresentanza> tutte = getByPersona(personaId);
+            List<RappresentanzaAggRow> rows = personaRappresentanzaRepository.findAggRowsByPersonaId(personaId);
 
-            if (tutte == null || tutte.isEmpty()) {
-                log.info("NESSUNA RAPPRESENTANZA TROVATA PER PERSONA_ID={}", personaId);
+            PersonaResponseDTO personaDTO;
+            List<RuoloRappresentanzaDTO> cariche;
+
+            if (rows.isEmpty()) {
+                log.info("NESSUNA RAPPRESENTANZA PER PERSONA_ID={}", personaId);
+
+                personaDTO = personaRepository.findLiteDtoById(personaId)
+                        .orElseThrow(() -> {
+                            log.error("PERSONA NON TROVATA - ID={}", personaId);
+                            return new EntityNotFoundException("Persona", "ID", personaId);
+                        });
+
+                cariche = List.of();
+            } else {
+                RappresentanzaAggRow first = rows.get(0);
+                personaDTO = new PersonaResponseDTO(first.personaId(), first.personaNome(), first.personaCognome());
+
+                cariche = rows.stream()
+                        .map(r -> RuoloRappresentanzaDTO.builder()
+                                .id(r.prId())
+                                .organo(new OrganoRappresentanzaDTO(r.organoId(), r.organoCodice(), r.organoNome()))
+                                .dataInizio(r.dataInizio())
+                                .dataFine(r.dataFine())
+                                .build()
+                        )
+                        .toList();
+            }
+
+            log.info("FINE RECUPERO RAPPRESENTANZE PER PERSONA_ID={} - CARICHE={}", personaId, cariche.size());
+
+            return PersonaConRappresentanzeResponseDTO.builder()
+                    .persona(personaDTO)
+                    .cariche(cariche)
+                    .build();
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO RAPPRESENTANZE PER PERSONA_ID={}", personaId, e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLE RAPPRESENTANZE PER PERSONA");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<PersonaConRappresentanzeResponseDTO> getDtoAll() {
+
+        log.info("RECUPERO TUTTI I RAPPRESENTANTI (AGGREGATI)");
+
+        try {
+            List<RappresentanzaAggRow> rows = personaRappresentanzaRepository.findAggRowsAll();
+
+            if (rows.isEmpty()) {
+                log.info("NESSUN RAPPRESENTANTE TROVATO");
                 return List.of();
             }
 
-            log.info("TROVATE {} RAPPRESENTANZE TOTALI PER PERSONA_ID={}", tutte.size(), personaId);
+            // MAP PERSONA_ID -> DTO IN COSTRUZIONE
+            Map<Long, PersonaConRappresentanzeResponseDTO> map = new LinkedHashMap<>();
 
-            List<PersonaRappresentanza> attive = tutte.stream()
-                    .filter(pr -> pr.getDataInizio() != null && !pr.getDataInizio().isAfter(today)) // INIZIO <= OGGI
-                    .filter(pr -> pr.getDataFine() == null || !pr.getDataFine().isBefore(today))    // FINE >= OGGI (SE PRESENTE)
-                    .toList();
+            for (RappresentanzaAggRow r : rows) {
+                map.computeIfAbsent(r.personaId(), pid -> PersonaConRappresentanzeResponseDTO.builder()
+                        .persona(new PersonaResponseDTO(r.personaId(), r.personaNome(), r.personaCognome()))
+                        .cariche(new java.util.ArrayList<>())
+                        .build()
+                );
 
-            log.info("TROVATE {} RAPPRESENTANZE ATTIVE PER PERSONA_ID={}", attive.size(), personaId);
-            log.info("FINE RECUPERO RAPPRESENTANZE ATTIVE PER PERSONA_ID={}", personaId);
-
-            return attive;
-
-        } catch (Exception ex) {
-            log.error("ERRORE DURANTE RECUPERO RAPPRESENTANZE ATTIVE PER PERSONA_ID={}", personaId, ex);
-            throw new GetAllException("ERRORE DURANTE IL RECUPERO DELLE RAPPRESENTANZE ATTIVE PER PERSONA");
-        }
-    }
-
-
-    @Override
-    public List<PersonaRappresentanza> getByOrganoId(Long organoId) {
-
-        log.info("RECUPERO RAPPRESENTANTI PER ORGANO_ID={}", organoId);
-
-        try {
-
-            // 2) Recupero listaCariche di studio
-            List<PersonaRappresentanza> listaCariche = personaRappresentanzaRepository.findByOrganoRappresentanza_Id(organoId);
-
-            if (listaCariche.isEmpty()) {
-                log.info("NESSUN RAPPRESENTANTE PER ORGANO_ID={}", organoId);
-            } else {
-                log.info("TROVATI {} RAPPRESENTANTI PER ORGANO_ID={}", listaCariche.size(), organoId);
+                // aggiungo carica
+                map.get(r.personaId()).getCariche().add(
+                        RuoloRappresentanzaDTO.builder()
+                                .id(r.prId())
+                                .organo(new OrganoRappresentanzaDTO(r.organoId(), r.organoCodice(), r.organoNome()))
+                                .dataInizio(r.dataInizio())
+                                .dataFine(r.dataFine())
+                                .build()
+                );
             }
 
-            return listaCariche;
+            List<PersonaConRappresentanzeResponseDTO> result = new ArrayList<>(map.values());
 
-        } catch (EntityNotFoundException ex) {
-            // La rilanciamo così viene gestita dal GlobalExceptionHandler con 404
-            throw ex;
-        } catch (Exception ex) {
-            // Qualsiasi altro errore inaspettato
-            log.error("ERRORE DURANTE IL RECUPERO DEI RAPPRESENTANTI PER ORGANO_ID={}", organoId, ex);
-            throw new GetAllException(
-                    "Errore durante il recupero delle cariche per organo " + PersonaRappresentanza.class.getSimpleName()
-            );
+            log.info("FINE RECUPERO TUTTI I RAPPRESENTANTI (AGGREGATI) - PERSONE={}", result.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("ERRORE RECUPERO TUTTI I RAPPRESENTANTI (AGGREGATI)", e);
+            throw new GetAllException("ERRORE DURANTE IL RECUPERO DI TUTTI I RAPPRESENTANTI");
         }
-
     }
+
 
     @Override
     public List<PersonaRappresentanza> getAll() {
@@ -304,6 +342,34 @@ public class PersonaRappresentanzaServiceImpl implements PersonaRappresentanzaSe
     }
 
 
+    @Transactional(readOnly = true)
+    @Override
+    public Long findIdAttivaByPersonaIdAndOrganoNome(Long personaId, String organoNome, LocalDate today){
+        return personaRappresentanzaRepository
+                .findIdAttivaByPersonaIdAndOrganoNome(personaId, organoNome, today)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "RAPPRESENTANZA ATTIVA NON TROVATA - PERSONA_ID=" + personaId + " - ORGANO_NOME=" + organoNome));
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Long countAttiveByPersonaId(Long personaId, LocalDate today){
+        return  personaRappresentanzaRepository.countAttiveByPersonaId(personaId, today);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Long findPersona_IdById(Long personaRappresentanzaId){
+        return  personaRappresentanzaRepository.findPersona_IdById(personaRappresentanzaId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "PERSONA_RAPPRESENTANZA NON TROVATA - ID=" + personaRappresentanzaId));
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<PersonaLabelRow> findRappresentanzeAttiveLabelsByPersonaIds(List<Long> ids, LocalDate today){
+        return personaRappresentanzaRepository.findRappresentanzeAttiveLabelsByPersonaIds(ids, today);
+    }
 }
 
 

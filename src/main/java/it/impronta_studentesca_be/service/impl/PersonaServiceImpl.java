@@ -1,12 +1,14 @@
 package it.impronta_studentesca_be.service.impl;
 
 import it.impronta_studentesca_be.constant.Roles;
+import it.impronta_studentesca_be.dto.record.PersonaFotoRow;
 import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
+import it.impronta_studentesca_be.dto.record.PersonaRuoloRow;
+import it.impronta_studentesca_be.dto.record.StaffBaseDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.Ruolo;
 import it.impronta_studentesca_be.exception.*;
 import it.impronta_studentesca_be.repository.PersonaRepository;
-import it.impronta_studentesca_be.service.EmailService;
 import it.impronta_studentesca_be.service.PersonaService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,8 +55,8 @@ public class PersonaServiceImpl implements PersonaService {
 
 
 
-    private Persona mergeNotNull(Persona db, Persona persona) {
-        if (persona == null) return db;
+    private void mergeNotNull(Persona db, Persona persona) {
+        if (persona == null) return ;
 
         if (persona.getRuoli() != null) {
             if (db.getRuoli() == null) {
@@ -98,11 +100,6 @@ public class PersonaServiceImpl implements PersonaService {
             db.setFotoFileId(persona.getFotoFileId());
         }
 
-        // di solito NO:
-        // - db.setId(...)
-        // - db.setDataRegistrazione(...)
-
-        return db;
     }
 
 
@@ -242,21 +239,6 @@ public class PersonaServiceImpl implements PersonaService {
 
 
     @Override
-    public PersonaMiniDTO getPersonaLiteById(Long id) {
-        log.info("RECUPERO PERSONA CON ID: {}", id);
-        return personaRepository.findMiniById(id)
-                .orElseThrow(() -> {
-                    log.error("PERSONA NON TROVATA CON ID: {}", id);
-                    return new EntityNotFoundException(
-                            Persona.class.getSimpleName(),
-                            "id",
-                            id
-                    );
-                });
-    }
-
-
-    @Override
     public Persona getByEmail(String email) {
         log.info("RECUPERO PERSONA CON EMAIL: {}", email);
         Optional<Persona> persona = personaRepository.findByEmail(email);
@@ -299,40 +281,12 @@ public class PersonaServiceImpl implements PersonaService {
         }
     }
 
-    @Override
-    public List<Persona> getByUfficio(Long ufficioId) {
-        log.info("RECUPERO PERSONE PER UFFICIO_ID={}", ufficioId);
-
-        try {
-
-            // 2) Recupero persone di studio
-            List<Persona> persone = personaRepository.findByUfficio_Id(ufficioId);
-
-            if (persone.isEmpty()) {
-                log.info("NESSUNA PERSONA TROVATA PER UFFICIO_ID={}", ufficioId);
-            } else {
-                log.info("TROVATI {} PERSONE PER UFFICIO_ID={}", persone.size(), ufficioId  );
-            }
-
-            return persone;
-
-        } catch (EntityNotFoundException ex) {
-            // La rilanciamo così viene gestita dal GlobalExceptionHandler con 404
-            throw ex;
-        } catch (Exception ex) {
-            // Qualsiasi altro errore inaspettato
-            log.error("ERRORE DURANTE IL RECUPERO DELLE PERSONE PER UFFICIO_ID={}", ufficioId, ex);
-            throw new GetAllException(
-                    "Errore durante il recupero delle persone per ufficio" + Persona.class.getSimpleName()
-            );
-        }
-    }
 
 
 
     @Override
     @Transactional
-    public Set<Ruolo> aggiungiRuolo(Long personaId, Roles nome) {
+    public void aggiungiRuolo(Long personaId, Roles nome) {
 
         log.info("INIZIO AGGIUNTA RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome);
 
@@ -355,8 +309,6 @@ public class PersonaServiceImpl implements PersonaService {
 
             log.info("FINE AGGIUNTA RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome);
 
-            return ruoli != null ? ruoli : java.util.Collections.emptySet();
-
         } catch (Exception e) {
             log.error("ERRORE AGGIUNTA RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome, e);
             throw e; // SE VUOI, WRAPPA IN UNA TUA ECCEZIONE CUSTOM
@@ -364,39 +316,59 @@ public class PersonaServiceImpl implements PersonaService {
     }
 
 
-    @Override
     @Transactional
-    public Set<Ruolo> rimuoviRuolo(Long personaId, Roles nome) {
+    @Override
+    public int setPasswordIfEmpty(Long personaId, String password) {
+        return personaRepository.setPasswordIfEmpty(personaId, password);
+    }
 
-        log.info("INIZIO RIMOZIONE RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome);
-
-        try {
-            int removedRows = personaRepository.deleteRuoloFromPersonaByNome(personaId, nome.name());
-
-            if (removedRows > 0) {
-                log.info("RUOLO RIMOSSO CON SUCCESSO - PERSONA_ID={} - RUOLO={}", personaId, nome);
-            } else {
-                log.warn("NESSUNA MODIFICA IN RIMOZIONE RUOLO (NON PRESENTE O RUOLO NON TROVATO) - PERSONA_ID={} - RUOLO={}",
-                        personaId, nome);
-            }
-
-            Set<Ruolo> ruoli = personaRepository.findRuoliByPersonaId(personaId);
-
-            log.debug("RUOLI DOPO RIMOZIONE - PERSONA_ID={} - RUOLI={}",
-                    personaId,
-                    ruoli != null ? ruoli.stream().map(Ruolo::getNome).toList() : "NULL"
-            );
-
-            log.info("FINE RIMOZIONE RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome);
-
-            return ruoli != null ? ruoli : java.util.Collections.emptySet();
-
-        } catch (Exception e) {
-            log.error("ERRORE RIMOZIONE RUOLO - PERSONA_ID={} - RUOLO={}", personaId, nome, e);
-            throw e; // SE VUOI, WRAPPA IN UNA TUA ECCEZIONE CUSTOM
-        }
+    @Transactional
+    @Override
+    public int setPasswordIfPresent(Long personaId, String password) {
+        return personaRepository.setPasswordIfPresent(personaId, password);
     }
 
 
+    @Transactional(readOnly = true)
+    @Override
+    public boolean existsById(Long personaId) {
+        return personaRepository.existsById(personaId);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Optional<PersonaFotoRow> findFotoRowById(Long personaId){
+        return personaRepository.findFotoRowById(personaId);
+    }
+
+    @Transactional
+    @Override
+    public int updateFotoFields(Long personaId, String url, String thumbnail, String fieldId){
+        return personaRepository.updateFotoFields(personaId, url, thumbnail, fieldId);
+    }
+
+    @Transactional
+    @Override
+    public int clearFotoFields(Long personaId){
+        return personaRepository.clearFotoFields(personaId);
+    }
+
+    @Transactional
+    @Override
+    public int deleteRuoloFromPersonaByNome(Long personaId, String ruolo){
+        return personaRepository.deleteRuoloFromPersonaByNome(personaId, ruolo);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<StaffBaseDTO> findStaffBase(){
+        return personaRepository.findStaffBase(Roles.STAFF);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<PersonaRuoloRow> findRuoliRowsByPersonaIds(List<Long> personaIds){
+        return personaRepository.findRuoliRowsByPersonaIds(personaIds);
+    }
 
 }

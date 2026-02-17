@@ -7,10 +7,6 @@ import it.impronta_studentesca_be.dto.record.*;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.exception.EntityNotFoundException;
 import it.impronta_studentesca_be.exception.GetAllException;
-import it.impronta_studentesca_be.repository.DirettivoRepository;
-import it.impronta_studentesca_be.repository.PersonaDirettivoRepository;
-import it.impronta_studentesca_be.repository.PersonaRappresentanzaRepository;
-import it.impronta_studentesca_be.repository.PersonaRepository;
 import it.impronta_studentesca_be.service.*;
 import it.impronta_studentesca_be.util.Mapper;
 import lombok.extern.slf4j.Slf4j;
@@ -30,22 +26,11 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
     private PersonaService personaService;
 
     @Autowired
-    private PersonaRepository personaRepository;
-
-    @Autowired
     private PersonaDirettivoService personaDirettivoService;
-
-    @Autowired
-    private PersonaDirettivoRepository personaDirettivoRepository;
 
     @Autowired
     private PersonaRappresentanzaService personaRappresentanzaService;
 
-    @Autowired
-    PersonaRappresentanzaRepository personaRappresentanzaRepository;
-
-    @Autowired
-    private OrganoRappresentanzaService organoRappresentanzaService;
 
     @Autowired
     private DipartimentoService dipartimentoService;
@@ -62,14 +47,10 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
     @Autowired
     private DirettivoService direttivoService;
 
-    @Autowired
-    private DirettivoRepository direttivoRepository;
 
     @Autowired
     private EmailService emailService;
 
-    @Autowired
-    private RuoloService ruoloService;
 
     @Autowired
     private DocumentiService documentiService;
@@ -155,18 +136,18 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             throw new IllegalArgumentException("File immagine mancante o vuoto");
         }
 
-        String oldFileId = null;
+        String oldFileId;
         ImageUploadResponseDTO uploadResult = null;
 
         try {
             // 1) RECUPERO SOLO IL FILE_ID ATTUALE (NO ENTITY)
-            PersonaFotoRow fotoRow = personaRepository.findFotoRowById(personaId)
-                    .orElseThrow(() -> {
-                        log.error("PERSONA NON TROVATA. PERSONA_ID={}", personaId);
-                        return new EntityNotFoundException("Persona", "id", personaId);
-                    });
+            Optional<PersonaFotoRow> fotoRow = personaService.findFotoRowById(personaId);
 
-            oldFileId = fotoRow.fotoFileId();
+            if(fotoRow.isEmpty()) {
+                log.error("PERSONA NON TROVATA. PERSONA_ID={}", personaId);
+                throw  new EntityNotFoundException("Persona", "id", personaId);
+            }
+            oldFileId = fotoRow.get().fotoFileId();
             log.info("RECUPERO FOTO ATTUALE COMPLETATO. PERSONA_ID={}, OLD_FILE_ID={}", personaId, oldFileId);
 
             // 2) UPLOAD SU IMAGEKIT
@@ -184,7 +165,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             log.info("AGGIORNAMENTO CAMPI FOTO SU PERSONA. PERSONA_ID={}, NEW_FILE_ID={}",
                     personaId, uploadResult.getFileId());
 
-            int updated = personaRepository.updateFotoFields(
+            int updated = personaService.updateFotoFields(
                     personaId,
                     uploadResult.getUrl(),
                     uploadResult.getThumbnail(),
@@ -263,7 +244,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
         }
 
         try {
-            Optional<PersonaFotoRow> optRow = personaRepository.findFotoRowById(personaId);
+            Optional<PersonaFotoRow> optRow = personaService.findFotoRowById(personaId);
 
             if (optRow.isEmpty()) {
                 log.warn("FOTO NON PRESENTE - PERSONA_ID={} - NESSUNA AZIONE", personaId);
@@ -286,7 +267,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
 
             // 2) RESET CAMPI SU DB (A NULL)
             log.info("RESET CAMPI FOTO SU DB. PERSONA_ID={}", personaId);
-            int updated = personaRepository.clearFotoFields(personaId);
+            int updated = personaService.clearFotoFields(personaId);
 
             if (updated != 1) {
                 log.error("RESET CAMPI FOTO NON RIUSCITO. PERSONA_ID={}, UPDATED_ROWS={}", personaId, updated);
@@ -324,8 +305,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             personaService.checkExistById(personaId);
 
             // 1 QUERY: RECUPERO TIPO + VALIDAZIONE ESISTENZA DIRETTIVO
-            TipoDirettivo tipoDirettivo = direttivoRepository.findTipoById(direttivoId)
-                    .orElseThrow(() -> new EntityNotFoundException("DIRETTIVO NON TROVATO - ID=" + direttivoId));
+            TipoDirettivo tipoDirettivo = direttivoService.findTipoById(direttivoId);
 
             // INSERT CON REFERENCES (NEL SERVICE)
             personaDirettivoService.addPersonaToDirettivo(personaId, direttivoId, ruolo);
@@ -363,8 +343,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             personaService.checkExistById(personaId);
 
             // 1 QUERY LEGGERA: RECUPERO TIPO + VALIDAZIONE ESISTENZA DIRETTIVO
-            TipoDirettivo tipoDirettivo = direttivoRepository.findTipoById(direttivoId)
-                    .orElseThrow(() -> new EntityNotFoundException("DIRETTIVO NON TROVATO - ID=" + direttivoId));
+            TipoDirettivo tipoDirettivo = direttivoService.findTipoById(direttivoId);
 
             // UPDATE (QUI ASSUMO CHE IL SERVICE LANCIA ECCEZIONE SE LA RELAZIONE NON ESISTE)
             personaDirettivoService.updatePersonaToDirettivo(personaId, direttivoId, ruolo);
@@ -409,8 +388,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             personaService.checkExistById(personaId);
 
             // 1 QUERY LEGGERA: RECUPERO TIPO + VALIDAZIONE ESISTENZA DIRETTIVO (SOSTITUISCE checkExistById)
-            TipoDirettivo tipoDirettivo = direttivoRepository.findTipoById(direttivoId)
-                    .orElseThrow(() -> new EntityNotFoundException("DIRETTIVO NON TROVATO - ID=" + direttivoId));
+            TipoDirettivo tipoDirettivo = direttivoService.findTipoById(direttivoId);
 
             // DELETE ASSOCIAZIONE
             personaDirettivoService.removePersonaFromDirettivo(personaId, direttivoId);
@@ -419,21 +397,21 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             // CONTROLLO SOLO IL TIPO IMPATTATO (1 EXISTS)
             if (tipoDirettivo == TipoDirettivo.GENERALE) {
 
-                boolean haAncoraGenerale = personaDirettivoRepository.existsByPersona_IdAndDirettivo_Tipo(personaId, TipoDirettivo.GENERALE);
+                boolean haAncoraGenerale = personaDirettivoService.existsByPersona_IdAndDirettivo_Tipo(personaId, TipoDirettivo.GENERALE);
                 log.info("VERIFICA DIRETTIVO GENERALE RESIDUO - PERSONA_ID={} - ESISTE={}", personaId, haAncoraGenerale);
 
                 if (!haAncoraGenerale) {
-                    int removed = personaRepository.deleteRuoloFromPersonaByNome(personaId, Roles.DIRETTIVO.name());
+                    int removed = personaService.deleteRuoloFromPersonaByNome(personaId, Roles.DIRETTIVO.name());
                     log.info("RIMOZIONE RUOLO DIRETTIVO - PERSONA_ID={} - RIGHE_RIMOSSE={}", personaId, removed);
                 }
 
             } else if (tipoDirettivo == TipoDirettivo.DIPARTIMENTALE) {
 
-                boolean haAncoraDip = personaDirettivoRepository.existsByPersona_IdAndDirettivo_Tipo(personaId, TipoDirettivo.DIPARTIMENTALE);
+                boolean haAncoraDip = personaDirettivoService.existsByPersona_IdAndDirettivo_Tipo(personaId, TipoDirettivo.DIPARTIMENTALE);
                 log.info("VERIFICA DIRETTIVO DIPARTIMENTALE RESIDUO - PERSONA_ID={} - ESISTE={}", personaId, haAncoraDip);
 
                 if (!haAncoraDip) {
-                    int removed = personaRepository.deleteRuoloFromPersonaByNome(personaId, Roles.DIRETTIVO_DIPARTIMENTALE.name());
+                    int removed = personaService.deleteRuoloFromPersonaByNome(personaId, Roles.DIRETTIVO_DIPARTIMENTALE.name());
                     log.info("RIMOZIONE RUOLO DIRETTIVO_DIPARTIMENTALE - PERSONA_ID={} - RIGHE_RIMOSSE={}", personaId, removed);
                 }
 
@@ -540,22 +518,19 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
                 personaId, organoNome, today);
 
         try {
-            Long personaRappresentanzaId = personaRappresentanzaRepository
-                    .findIdAttivaByPersonaIdAndOrganoNome(personaId, organoNome, today)
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            "RAPPRESENTANZA ATTIVA NON TROVATA - PERSONA_ID=" + personaId + " - ORGANO_NOME=" + organoNome));
-
+            Long personaRappresentanzaId = personaRappresentanzaService
+                    .findIdAttivaByPersonaIdAndOrganoNome(personaId, organoNome, today);
             log.info("RAPPRESENTANZA ATTIVA TROVATA - PERSONA_RAPPRESENTANZA_ID={} - PERSONA_ID={} - ORGANO_NOME={}",
                     personaRappresentanzaId, personaId, organoNome);
 
             // USA IL TUO DELETE (CHE HA GIA' TRY/CATCH E LOG)
             personaRappresentanzaService.delete(personaRappresentanzaId);
 
-            long attive = personaRappresentanzaRepository.countAttiveByPersonaId(personaId, today);
+            long attive = personaRappresentanzaService.countAttiveByPersonaId(personaId, today);
             log.info("CONTEGGIO RAPPRESENTANZE ATTIVE DOPO ELIMINAZIONE - PERSONA_ID={} - ATTIVE={}", personaId, attive);
 
             if (attive == 0) {
-                int removedRows = personaRepository.deleteRuoloFromPersonaByNome(personaId, Roles.RAPPRESENTANTE.name());
+                int removedRows = personaService.deleteRuoloFromPersonaByNome(personaId, Roles.RAPPRESENTANTE.name());
                 log.info("RIMOZIONE RUOLO RAPPRESENTANTE - PERSONA_ID={} - RIGHE_RIMOSSE={}", personaId, removedRows);
             } else {
                 log.info("RUOLO RAPPRESENTANTE NON RIMOSSO - PERSONA_ID={} - MOTIVO=RAPPRESENTANZE ATTIVE PRESENTI", personaId);
@@ -584,20 +559,18 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
 
         try {
             // 1) RECUPERO PERSONA_ID IN MODO LEGGERO (NO ENTITY LOAD)
-            Long personaId = personaRappresentanzaRepository.findPersona_IdById(personaRappresentanzaId)
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            "PERSONA_RAPPRESENTANZA NON TROVATA - ID=" + personaRappresentanzaId));
+            Long personaId = personaRappresentanzaService.findPersona_IdById(personaRappresentanzaId);
 
             // 2) ELIMINO LA PERSONA_RAPPRESENTANZA (USA IL TUO SERVICE)
             personaRappresentanzaService.delete(personaRappresentanzaId);
 
             // 3) CONTROLLO SOLO COUNT (NO LISTE, NO STREAM)
-            long attive = personaRappresentanzaRepository.countAttiveByPersonaId(personaId, LocalDate.now());
+            long attive = personaRappresentanzaService.countAttiveByPersonaId(personaId, LocalDate.now());
             log.info("CONTEGGIO RAPPRESENTANZE ATTIVE DOPO ELIMINAZIONE - PERSONA_ID={} - ATTIVE={}", personaId, attive);
 
             // 4) SE ZERO ATTIVE, RIMUOVO RUOLO IN MODO DIRETTO (NO LOAD PERSONA/RUOLO)
             if (attive == 0) {
-                int removedRows = personaRepository.deleteRuoloFromPersonaByNome(personaId, Roles.RAPPRESENTANTE.name());
+                int removedRows = personaService.deleteRuoloFromPersonaByNome(personaId, Roles.RAPPRESENTANTE.name());
                 log.info("RIMOZIONE RUOLO RAPPRESENTANTE - PERSONA_ID={} - RIGHE_RIMOSSE={}", personaId, removedRows);
             }
 
@@ -728,7 +701,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             LocalDate today = LocalDate.now();
 
             // 1) STAFF BASE (1 QUERY)
-            List<StaffBaseDTO> staffBase = personaRepository.findStaffBase(Roles.STAFF);
+            List<StaffBaseDTO> staffBase = personaService.findStaffBase();
 
             if (staffBase == null || staffBase.isEmpty()) {
                 log.info("STAFF NON TROVATO");
@@ -746,7 +719,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             // 2) RUOLI (1 QUERY)
             Map<Long, Set<String>> ruoliByPersona = new HashMap<>(ids.size() * 2);
             try {
-                List<PersonaRuoloRow> righeRuoli = personaRepository.findRuoliRowsByPersonaIds(ids);
+                List<PersonaRuoloRow> righeRuoli = personaService.findRuoliRowsByPersonaIds(ids);
                 for (PersonaRuoloRow row : righeRuoli) {
                     if (row == null || row.personaId() == null || row.ruolo() == null) continue;
 
@@ -763,7 +736,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             // 3) RAPPRESENTANZE ATTIVE (1 QUERY)
             Map<Long, Set<String>> repsByPersona = new HashMap<>(ids.size() * 2);
             try {
-                List<PersonaLabelRow> reps = personaRappresentanzaRepository
+                List<PersonaLabelRow> reps = personaRappresentanzaService
                         .findRappresentanzeAttiveLabelsByPersonaIds(ids, today);
 
                 for (PersonaLabelRow row : reps) {
@@ -786,7 +759,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             // 4) RUOLI DIRETTIVO GENERALE ATTIVI (1 QUERY) - DEDUP+ORDINE IN INSERIMENTO
             Map<Long, LinkedHashSet<String>> direttivoByPersona = new HashMap<>(ids.size() * 2);
             try {
-                List<PersonaDirettivoRow> righeDirettivo = personaDirettivoRepository
+                List<PersonaDirettivoRow> righeDirettivo = personaDirettivoService
                         .findRuoliDirettivoGeneraleAttiviByPersonaIds(ids, TipoDirettivo.GENERALE, today);
 
                 for (PersonaDirettivoRow row : righeDirettivo) {

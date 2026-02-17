@@ -29,4 +29,7 @@ public interface DirettivoService {
     List<DirettivoResponseDTO> getByDipartimento(Long dipartimentoId);
 
     List<DirettivoResponseDTO> getDirettiviInCarica();
+
+    @Transactional(readOnly = true)
+    TipoDirettivo findTipoById(Long direttivoId);
 }
