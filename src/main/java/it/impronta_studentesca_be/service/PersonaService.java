@@ -62,6 +62,15 @@ public interface PersonaService {
     @Transactional
     List<StaffBaseDTO> findStaffBase();
 
+    @Transactional(readOnly = true)
+    List<StaffBaseDTO> findDaApprovare();
+
+    @Transactional(readOnly = true)
+    int countDaApprovare();
+
     @Transactional
     List<PersonaRuoloRow> findRuoliRowsByPersonaIds(List<Long> personaIds);
+
+    @Transactional(readOnly = true)
+    void approvaById(Long personaId);
 }

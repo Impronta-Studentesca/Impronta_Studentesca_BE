@@ -31,10 +31,23 @@ public class AdminController {
     //PERSONA
 
     @PostMapping("/persona")
-    public ResponseEntity creaPersona(@RequestBody PersonaRequestDTO persona) {
-        adminImprontaService.creaPersona(persona);
+    public ResponseEntity<Void> creaPersona(@RequestBody PersonaRequestDTO persona) {
+        adminImprontaService.creaPersona(persona, false);
         return ResponseEntity.ok().build();
     }
+
+    @PutMapping("/approva/persona")
+    public ResponseEntity<Void> approvaPersona(@RequestBody PersonaRequestDTO persona) {
+        adminImprontaService.approvaPersona(persona);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/approva/all")
+    public ResponseEntity<Void> approvaTutti(@RequestBody List<PersonaRequestDTO> persone) {
+        persone.forEach(persona -> {adminImprontaService.approvaPersona(persona);});
+        return ResponseEntity.ok().build();
+    }
+
 
 
     @PostMapping("/" + ApiPath.DIRETTIVO_PATH)
@@ -122,19 +135,19 @@ public class AdminController {
     // DIPARTIMENTI
 
     @PostMapping("/dipartimento")
-    public ResponseEntity creaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
+    public ResponseEntity<Void> creaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
         adminImprontaService.creaDipartimento(dipartimento);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/dipartimento")
-    public ResponseEntity modificaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
+    public ResponseEntity<Void> modificaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
         adminImprontaService.modificaDipartimento(dipartimento);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/dipartimento")
-    public ResponseEntity eliminaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
+    public ResponseEntity<Void> eliminaDipartimento(@RequestBody DipartimentoRequestDTO dipartimento) {
          adminImprontaService.eliminaDipartimento(dipartimento);
         return ResponseEntity.ok().build();
     }
@@ -142,19 +155,19 @@ public class AdminController {
     // CORSI DI STUDIO
 
     @PostMapping("/corso")
-    public ResponseEntity creaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
+    public ResponseEntity<Void> creaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
          adminImprontaService.creaCorso(corso);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/corso")
-    public ResponseEntity modificaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
+    public ResponseEntity<Void> modificaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
         adminImprontaService.modificaCorso(corso);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/corso")
-    public ResponseEntity eliminaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
+    public ResponseEntity<Void> eliminaCorso(@RequestBody CorsoDiStudiRequestDTO corso) {
         adminImprontaService.eliminaCorso(corso);
         return ResponseEntity.ok().build();
     }
@@ -162,7 +175,7 @@ public class AdminController {
     // UFFICI
 
     @PostMapping("/ufficio")
-    public ResponseEntity creaUfficio(@RequestBody UfficioRequestDTO ufficio) {
+    public ResponseEntity<Void> creaUfficio(@RequestBody UfficioRequestDTO ufficio) {
         adminImprontaService.creaUfficio(ufficio);
         return ResponseEntity.ok().build();
     }

@@ -77,6 +77,11 @@ public class AuthController {
     }
 
 
+    @PostMapping("/persona")
+    public ResponseEntity<Void> creaPersona(@RequestBody RegisterDTO request) {
+        publicImprontaService.creaPersona(request.getPersona(), request.getCorso());
+        return ResponseEntity.ok().build();
+    }
 
 
 }

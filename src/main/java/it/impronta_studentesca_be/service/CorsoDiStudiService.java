@@ -29,4 +29,6 @@ public interface CorsoDiStudiService {
 
     @Transactional(readOnly = true)
     CorsoDiStudiResponseDTO getCorsoByPersonaId(Long personaId);
+
+    Long getIdByNome(String nome);
 }

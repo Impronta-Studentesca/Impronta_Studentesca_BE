@@ -62,7 +62,7 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
 /////////////PERSONA//////////
  */
     @Override
-    public void creaPersona(PersonaRequestDTO persona) {
+    public void creaPersona(PersonaRequestDTO persona, boolean daApprovare) {
 
         log.info("INIZIO CREA PERSONA - REQUEST={}", persona);
 
@@ -73,18 +73,36 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             }
 
             persona.setId(null);
-            Persona saved = personaService.create(mapper.toPersona(persona));
+            Persona preSaved = mapper.toPersona(persona);
+            preSaved.setDaApprovare(daApprovare);
+            Persona saved = personaService.create(preSaved);
 
             log.info("FINE CREA PERSONA - OK");
 
-            documentiService.marcaExcelAssociatiDaModificare();
-
-            emailService.sendLinkPasswordUtente(saved.getId(), saved.getEmail(), saved.getNome(), false);
+            if(!daApprovare){
+                documentiService.marcaExcelAssociatiDaModificare();
+                emailService.sendLinkPasswordUtente(saved.getId(), saved.getEmail(), saved.getNome(), false);
+            }
 
         } catch (Exception e) {
             log.error("ERRORE CREA PERSONA - REQUEST={}", persona, e);
             throw e;
         }
+    }
+
+    @Override
+    @Transactional
+    public void approvaPersona(PersonaRequestDTO persona){
+
+        try {
+            personaService.approvaById(persona.getId());
+            documentiService.marcaExcelAssociatiDaModificare();
+            emailService.sendLinkPasswordUtente(persona.getId(), persona.getEmail(), persona.getNome(), false);
+        } catch (Exception e) {
+            log.error("ERRORE APPROVAZIONE PERSONA - REQUEST={}", persona, e);
+            throw e;
+        }
+
     }
 
     @Override
@@ -793,14 +811,17 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
                 CorsoDiStudiResponseDTO corsoDto = null;
                 if (p.corsoId() != null) {
                     // RICHIEDE COSTRUTTORE "FLAT" (ID, NOME, TIPO)
-                    corsoDto = new CorsoDiStudiResponseDTO(p.corsoId(), p.corsoNome(), p.tipoCorso());
+                    corsoDto = new CorsoDiStudiResponseDTO(p.corsoId(), p.corsoNome(), p.tipoCorso(), p.dipartimentoId(), p.dipartimentoNome(), p.dipartimentoCodice());
                 }
 
                 result.add(StaffCardDTO.builder()
                         .id(personaId)
                         .nome(p.nome())
                         .cognome(p.cognome())
+                        .matricola(p.matricola())
+                        .numeroTelefono(p.numeroTelefono())
                         .email(p.email())
+                        .mailUnipa(p.mailUnipa())
                         .ruoli(ruoli)
                         .corsoDiStudi(corsoDto)
                         .annoCorso(p.annoCorso())
@@ -821,6 +842,63 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
         }
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public List<StaffCardDTO> getDaApprovare() {
+        log.info("INIZIO RECUPERO DI TUTTO LO STAFF (BULK)");
+
+        try {
+
+
+            // 1) STAFF BASE (1 QUERY)
+            List<StaffBaseDTO> personaDaApprovare = personaService.findDaApprovare();
+
+            if (personaDaApprovare == null || personaDaApprovare.isEmpty()) {
+                log.info("STAFF NON TROVATO");
+                return List.of();
+            }
+
+            log.info("SONO STATI TROVATI {} MEMBRI DI STAFF", personaDaApprovare.size());
+
+            // BUILD RESULT
+            List<StaffCardDTO> result = new ArrayList<>(personaDaApprovare.size());
+            for (StaffBaseDTO p : personaDaApprovare) {
+                Long personaId = p.id();
+
+                CorsoDiStudiResponseDTO corsoDto = null;
+                if (p.corsoId() != null) {
+                    // RICHIEDE COSTRUTTORE "FLAT" (ID, NOME, TIPO)
+                    corsoDto = new CorsoDiStudiResponseDTO(p.corsoId(), p.corsoNome(), p.tipoCorso(), p.dipartimentoId(), p.dipartimentoNome(), p.dipartimentoCodice());
+                }
+
+                result.add(StaffCardDTO.builder()
+                        .id(personaId)
+                        .nome(p.nome())
+                        .cognome(p.cognome())
+                        .matricola(p.matricola())
+                        .numeroTelefono(p.numeroTelefono())
+                        .email(p.email())
+                        .mailUnipa(p.mailUnipa())
+                        .corsoDiStudi(corsoDto)
+                        .annoCorso(p.annoCorso())
+                        .build()
+                );
+            }
+
+            log.info("FINE RECUPERO STAFF (BULK): {} MEMBRI", result.size());
+            return result;
+
+        } catch (Exception ex) {
+            log.error("ERRORE IMPOSSIBILE RECUPERARE LO STAFF (BULK)", ex);
+            throw new GetAllException("Errore durante il recupero dello staff");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public int contaDaApprovare(){
+        return personaService.countDaApprovare();
+    }
 
 
 

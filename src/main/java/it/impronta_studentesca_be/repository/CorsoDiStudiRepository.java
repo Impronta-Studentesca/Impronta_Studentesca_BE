@@ -77,4 +77,24 @@ public interface CorsoDiStudiRepository extends JpaRepository<CorsoDiStudi, Long
 """)
     List<CorsoMiniDTO> findAllMini();
 
+    @Query("""
+    select c.id
+    from CorsoDiStudi c
+    where c.nome = :nome
+""")
+    Long getIdByNome(@Param("nome") String nome);
+
+    @Query("""
+        select case when count(c) > 0 then true else false end
+        from CorsoDiStudi c
+        where lower(trim(c.nome)) = lower(trim(:nome))
+          and c.tipoCorso = :tipoCorso
+          and c.dipartimento.id = :dipartimentoId
+    """)
+    boolean existsByNomeAndTipoCorsoAndDipartimentoId(
+            @Param("nome") String nome,
+            @Param("tipoCorso") TipoCorso tipoCorso,
+            @Param("dipartimentoId") Long dipartimentoId
+    );
+
 }

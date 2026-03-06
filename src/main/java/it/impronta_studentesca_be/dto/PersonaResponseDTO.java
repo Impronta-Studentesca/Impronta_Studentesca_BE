@@ -1,7 +1,6 @@
 package it.impronta_studentesca_be.dto;
 
 import it.impronta_studentesca_be.constant.Roles;
-import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.Ruolo;
 import lombok.AllArgsConstructor;
@@ -26,6 +25,8 @@ public class PersonaResponseDTO {
     private String nome;
 
     private String cognome;
+
+    private String numeroTelefono;
 
     private CorsoDiStudiResponseDTO corsoDiStudi;
 

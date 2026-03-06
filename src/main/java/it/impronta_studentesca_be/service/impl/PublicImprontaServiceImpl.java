@@ -12,6 +12,7 @@ import it.impronta_studentesca_be.entity.Ruolo;
 import it.impronta_studentesca_be.exception.EntityNotFoundException;
 import it.impronta_studentesca_be.security.PersonaUserDetails;
 import it.impronta_studentesca_be.service.*;
+import it.impronta_studentesca_be.util.Mapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +41,7 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     private DipartimentoService dipartimentoService;
 
     @Autowired
-    private CorsoDiStudiService corsoDiStudiService;
+    private CorsoDiStudiService  corsoDiStudiService;
 
     @Autowired
     private UfficioService ufficioService;
@@ -74,6 +75,12 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
     @Autowired
     private JwtEncoder jwtEncoder;
+
+    @Autowired
+    private AdminImprontaService adminImprontaService;
+
+    @Autowired
+    private Mapper mapper;
 
     @Value("${security.jwt.ttl-seconds:3600}")
     private long ttlSeconds;
@@ -520,6 +527,19 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
     @Override
     public void richiestaCreaPassword(Long id, String nome, String email) {
         emailService.sendLinkPasswordUtente(id, email, nome, false);
+    }
+
+    @Override
+    public void creaPersona(PersonaRequestDTO persona, CorsoDiStudiRequestDTO corso) {
+
+        if(corso == null || corso.getNome() == null || corso.getNome().isEmpty()){
+            adminImprontaService.creaPersona(persona, true);
+        }else {
+            corsoDiStudiService.create(mapper.toCorsoDiStudi(corso), corso.getDipartimentoId());
+            persona.setCorsoDiStudiId(corsoDiStudiService.getIdByNome(corso.getNome()));
+            adminImprontaService.creaPersona(persona, true);
+        }
+
     }
 
 

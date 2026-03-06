@@ -55,6 +55,9 @@ public class Persona {
     @JoinColumn(name = "ufficio_id")
     private Ufficio ufficio;
 
+    @Column(name = "da_approvare", nullable = false)
+    private boolean daApprovare = false;
+
     @Column(name = "data_registrazione", nullable = false)
     private LocalDateTime dataRegistrazione;
 
@@ -66,6 +69,15 @@ public class Persona {
 
     @Column(name = "foto_file_id", length = 255)
     private String fotoFileId;
+
+    @Column(name = "matricola", length = 50)
+    private String matricola;
+
+    @Column(name = "numero_telefono", length = 30)
+    private String numeroTelefono;
+
+    @Column(name = "mail_unipa", length = 255)
+    private String mailUnipa;
 
 
     public void setEmail(String email) {
@@ -95,6 +107,7 @@ public class Persona {
             email = email.trim().toLowerCase(Locale.ROOT);
         }
     }
+
 
 
 }

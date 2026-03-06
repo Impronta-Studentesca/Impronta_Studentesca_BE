@@ -20,14 +20,14 @@ public class CorsoDiStudiResponseDTO {
 
     private TipoCorso tipoCorso;
 
-    private Long dipartimentoId;
+    private DipartimentoResponseDTO dipartimento;
 
     public CorsoDiStudiResponseDTO(CorsoDiStudi corsoDiStudi) {
         this.id = corsoDiStudi.getId();
         this.nome = corsoDiStudi.getNome();
         this.tipoCorso = corsoDiStudi.getTipoCorso();
         if (corsoDiStudi.getDipartimento() != null) {
-            this.dipartimentoId = corsoDiStudi.getDipartimento().getId();
+            this.dipartimento = new DipartimentoResponseDTO(corsoDiStudi.getDipartimento());
 
         }
     }
@@ -36,6 +36,21 @@ public class CorsoDiStudiResponseDTO {
         this.id = corsoId;
         this.nome = corsoNome;
         this.tipoCorso = tipoCorso;
+    }
+
+    public CorsoDiStudiResponseDTO(Long corsoId, String corsoNome, TipoCorso tipoCorso, Long dipartimentoId) {
+        this.id = corsoId;
+        this.nome = corsoNome;
+        this.tipoCorso = tipoCorso;
+        this.dipartimento = new DipartimentoResponseDTO();
+        this.dipartimento.setId(dipartimentoId);
+    }
+
+    public CorsoDiStudiResponseDTO(Long corsoId, String corsoNome, TipoCorso tipoCorso, Long dipartimentoId, String dipartimentoNome, String dipartimentoCodice) {
+        this.id = corsoId;
+        this.nome = corsoNome;
+        this.tipoCorso = tipoCorso;
+        this.dipartimento = new DipartimentoResponseDTO(dipartimentoId, dipartimentoNome, dipartimentoCodice);
     }
 }
 

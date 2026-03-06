@@ -72,4 +72,6 @@ public interface PublicImprontaService {
     void richiestaModificaPassword(String email);
 
     void richiestaCreaPassword(Long id, String nome, String email);
+
+    void creaPersona(PersonaRequestDTO persona, CorsoDiStudiRequestDTO corso);
 }

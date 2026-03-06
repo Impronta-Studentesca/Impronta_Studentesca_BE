@@ -31,7 +31,7 @@ public class StaffController {
     }
 
     @PutMapping("/persona")
-    public ResponseEntity<PersonaResponseDTO> aggiornaPersona(@RequestBody PersonaRequestDTO persona) throws AccessDeniedException {
+    public ResponseEntity<Void> aggiornaPersona(@RequestBody PersonaRequestDTO persona) throws AccessDeniedException {
         securityPersonaService.checkCanManagePersona(persona.getId());
         adminImprontaService.aggiornaPersona(persona);
         return ResponseEntity.ok().build();
@@ -59,6 +59,14 @@ public class StaffController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/approvare")
+    public ResponseEntity<List<StaffCardDTO>> getDaApprovare() {
+        return ResponseEntity.ok(adminImprontaService.getDaApprovare());
+    }
 
+    @GetMapping("/conta/approvare")
+    public ResponseEntity<Integer> getContaDaApprovare() {
+        return ResponseEntity.ok(adminImprontaService.contaDaApprovare());
+    }
 
 }

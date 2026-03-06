@@ -44,12 +44,19 @@ public class CorsoDiStudiServiceImpl implements CorsoDiStudiService {
                 throw new IllegalArgumentException("DIPARTIMENTO_ID MANCANTE");
             }
 
+            if(corsoDiStudiRepository.existsByNomeAndTipoCorsoAndDipartimentoId(corso.getNome(), corso.getTipoCorso(), dipartimentoId)){
+                log.error("ERRORE CREAZIONE CORSO - CORSO GIA ESISTENTE");
+                throw new CreateException("Corso di studi", corso.getNome() ," corso gia' esistente");
+            }
+
             corso.setDipartimento(dipartimentoRepository.getReferenceById(dipartimentoId));
 
             corsoDiStudiRepository.save(corso);
 
             log.info("FINE CREAZIONE CORSO - OK");
 
+        }catch (CreateException e){
+            throw e;
         } catch (Exception e) {
             log.error("ERRORE CREAZIONE CORSO - NOME={} - TIPO={} - DIPARTIMENTO_ID={}",
                     corso != null ? corso.getNome() : null,
@@ -231,6 +238,11 @@ public class CorsoDiStudiServiceImpl implements CorsoDiStudiService {
             log.error("ERRORE RECUPERO CORSO DI STUDI (DTO) PER PERSONA_ID={}", personaId, ex);
             throw new GetAllException("ERRORE DURANTE IL RECUPERO DEL CORSO DI STUDI");
         }
+    }
+
+    @Override
+    public Long getIdByNome(String nome) {
+        return corsoDiStudiRepository.getIdByNome(nome);
     }
 
 

@@ -17,7 +17,10 @@ public class StaffCardDTO {
     private Long id;                 // id persona
     private String nome;
     private String cognome;
+    private String matricola;
+    private String numeroTelefono;
     private String email;
+    private String mailUnipa;
 
 
     private Set<String> ruoli;       // come PersonaResponseDTO

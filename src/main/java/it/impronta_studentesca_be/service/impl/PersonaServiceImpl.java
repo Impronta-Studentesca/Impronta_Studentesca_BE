@@ -71,8 +71,17 @@ public class PersonaServiceImpl implements PersonaService {
         if (persona.getCognome() != null) {
             db.setCognome(persona.getCognome());
         }
+        if (persona.getMatricola() != null) {
+            db.setMatricola(persona.getMatricola());
+        }
+        if (persona.getNumeroTelefono() != null) {
+            db.setNumeroTelefono(persona.getNumeroTelefono());
+        }
         if (persona.getEmail() != null) {
             db.setEmail(persona.getEmail()); // usa il setter che normalizza
+        }
+        if (persona.getMailUnipa() != null) {
+            db.setMailUnipa(persona.getMailUnipa());
         }
         if (persona.getPassword() != null) {
             db.setPassword(persona.getPassword());
@@ -367,8 +376,27 @@ public class PersonaServiceImpl implements PersonaService {
 
     @Transactional(readOnly = true)
     @Override
+    public List<StaffBaseDTO> findDaApprovare(){
+        return personaRepository.findDaApprovare();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public int countDaApprovare(){
+        return personaRepository.countPersonaByDaApprovareIsTrue();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
     public List<PersonaRuoloRow> findRuoliRowsByPersonaIds(List<Long> personaIds){
         return personaRepository.findRuoliRowsByPersonaIds(personaIds);
+    }
+
+    @Transactional
+    @Override
+    public void approvaById(Long personaId){
+        personaRepository.setDaApprovareFalse(personaId);
+        aggiungiRuolo(personaId,Roles.STAFF);
     }
 
 }

@@ -65,12 +65,14 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
 
     @Query("""
         select new it.impronta_studentesca_be.dto.record.StaffBaseDTO(
-            p.id, p.nome, p.cognome, p.email,
-            c.id, c.nome, c.tipoCorso,
+            p.id, p.nome, p.cognome, p.matricola,p.numeroTelefono,
+            p.email, p.mailUnipa, c.id, c.nome, c.tipoCorso,
+            d.id, d.nome, d.codice,
             p.annoCorso, p.fotoUrl, p.fotoThumbnailUrl
         )
         from Persona p
         left join p.corsoDiStudi c
+        left join c.dipartimento d
         where exists (
             select 1
             from p.ruoli r
@@ -79,6 +81,23 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
         order by p.cognome, p.nome
     """)
     List<StaffBaseDTO> findStaffBase(@Param("ruoloStaff") Roles ruoloStaff);
+
+    @Query("""
+        select new it.impronta_studentesca_be.dto.record.StaffBaseDTO(
+            p.id, p.nome, p.cognome, p.matricola,p.numeroTelefono,
+            p.email, p.mailUnipa, c.id, c.nome, c.tipoCorso,
+            d.id, d.nome, d.codice,
+            p.annoCorso, "", ""
+        )
+        from Persona p
+        left join p.corsoDiStudi c
+        left join c.dipartimento d
+        where p.daApprovare = true
+        order by p.cognome, p.nome
+    """)
+    List<StaffBaseDTO> findDaApprovare();
+
+    int countPersonaByDaApprovareIsTrue();
 
     // ROW (personaId, ruoloEnum) per tutti gli staff in una botta
     @Query("""
@@ -168,6 +187,8 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
 """)
     List<PersonaMiniDTO> findMiniByCorsoId(@Param("corsoId") Long corsoId);
 
+
+
     @Query("""
     select new it.impronta_studentesca_be.dto.record.PersonaMiniDTO(p.id, p.nome, p.cognome)
     from Persona p
@@ -232,6 +253,14 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
   """)
     List<StaffExportRow> exportStaffRows();
 
+
+    @Modifying(clearAutomatically = true, flushAutomatically = false)
+    @Query("""
+        update Persona p
+        set p.daApprovare = false
+        where p.id = :id
+    """)
+    int setDaApprovareFalse(@Param("id") Long id);
 
 }
 

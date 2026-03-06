@@ -12,7 +12,10 @@ import java.util.List;
 public interface AdminImprontaService {
 
     // Persone
-    void creaPersona(PersonaRequestDTO persona);
+    void creaPersona(PersonaRequestDTO persona, boolean daApprovare);
+
+    void approvaPersona(PersonaRequestDTO persona);
+
     void aggiornaPersona(PersonaRequestDTO persona);
     void eliminaPersona(Long personaId);
 
@@ -25,6 +28,12 @@ public interface AdminImprontaService {
     List<StaffCardDTO> getStaffCards();
     ImageUploadResponseDTO uploadFotoPersona(Long personaId, MultipartFile file);
     // Direttivi
+
+    @Transactional(readOnly = true)
+    List<StaffCardDTO> getDaApprovare();
+
+    @Transactional(readOnly = true)
+    int contaDaApprovare();
 
     DirettivoResponseDTO creaDirettivo(DirettivoRequestDTO direttivo);
     DirettivoResponseDTO aggiornaDirettivo(DirettivoRequestDTO direttivo);

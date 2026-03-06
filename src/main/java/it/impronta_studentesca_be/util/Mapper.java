@@ -10,13 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 public class Mapper {
 
-    @Autowired
-    private PersonaRepository personaRepository;
 
     @Autowired
     private DipartimentoRepository dipartimentoRepository;
@@ -27,8 +24,6 @@ public class Mapper {
     @Autowired
     private UfficioRepository ufficioRepository;
 
-    @Autowired
-    private RuoloService ruoloService;
 
     @Autowired
     private RuoloRepository ruoloRepository;
@@ -65,10 +60,22 @@ public class Mapper {
             email = email.trim().toLowerCase(Locale.ROOT);
         }
 
+        String emailUnipa = dto.getMailUnipa();
+        if (emailUnipa != null) {
+            emailUnipa = emailUnipa.trim().toLowerCase(Locale.ROOT);
+        }
+
+        String telefono = dto.getNumeroTelefono();
+        String matricola = dto.getMatricola();
+
+
         return Persona.builder()
                 .id(dto.getId())
                 .nome(dto.getNome())
                 .cognome(dto.getCognome())
+                .matricola(matricola)
+                .numeroTelefono(telefono)
+                .mailUnipa(emailUnipa)
                 .email(email)
                 .corsoDiStudi(corsoDiStudi)
                 .ufficio(ufficio)
