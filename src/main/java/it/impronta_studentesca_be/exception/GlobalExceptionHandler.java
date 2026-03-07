@@ -88,6 +88,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
+    @ExceptionHandler(NotApprovedException.class)
+    public ResponseEntity<ApiError> handleGetAll(NotApprovedException ex,
+                                                 HttpServletRequest request) {
+        ApiError body = buildError(
+                HttpStatus.UNAUTHORIZED,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
     // ==========================
     //  VALIDAZIONE @Valid
     // ==========================

@@ -262,6 +262,9 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
     """)
     int setDaApprovareFalse(@Param("id") Long id);
 
+
+    boolean existsByIdAndDaApprovareTrue(Long id);
+
 }
 
 

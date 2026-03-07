@@ -73,4 +73,7 @@ public interface PersonaService {
 
     @Transactional(readOnly = true)
     void approvaById(Long personaId);
+
+    @Transactional(readOnly = true)
+    boolean checkIsDaApprovare(Long id);
 }

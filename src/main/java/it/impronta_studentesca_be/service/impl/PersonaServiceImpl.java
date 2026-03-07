@@ -399,4 +399,11 @@ public class PersonaServiceImpl implements PersonaService {
         aggiungiRuolo(personaId,Roles.STAFF);
     }
 
+
+    @Transactional(readOnly = true)
+    @Override
+    public boolean checkIsDaApprovare(Long id){
+        return personaRepository.existsByIdAndDaApprovareTrue(id);
+    }
+
 }

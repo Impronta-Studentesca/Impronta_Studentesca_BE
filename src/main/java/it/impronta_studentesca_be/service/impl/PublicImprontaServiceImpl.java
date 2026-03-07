@@ -10,6 +10,7 @@ import it.impronta_studentesca_be.dto.record.PersonaMiniDTO;
 import it.impronta_studentesca_be.entity.Persona;
 import it.impronta_studentesca_be.entity.Ruolo;
 import it.impronta_studentesca_be.exception.EntityNotFoundException;
+import it.impronta_studentesca_be.exception.NotApprovedException;
 import it.impronta_studentesca_be.security.PersonaUserDetails;
 import it.impronta_studentesca_be.service.*;
 import it.impronta_studentesca_be.util.Mapper;
@@ -469,6 +470,10 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
                 throw new BadCredentialsException("IMPOSSIBILE AUTENTICARSI");
             }
 
+            if(personaService.checkIsDaApprovare(userDetails.getPersona().getId())) {
+                throw new NotApprovedException();
+            }
+
             Persona persona = userDetails.getPersona();
 
             Set<String> ruoli = persona.getRuoli().stream()
@@ -501,6 +506,8 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
 
             return responseDTO;
 
+        } catch (NotApprovedException ex){
+            throw ex;
         } catch (BadCredentialsException ex) {
             log.error("LOGIN FALLITO - BAD CREDENTIALS - EMAIL={}", email);
             throw new BadCredentialsException("CREDENZIALI ERRATE");
