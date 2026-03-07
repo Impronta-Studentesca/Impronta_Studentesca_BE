@@ -242,7 +242,7 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
 
     @Query("""
   select new it.impronta_studentesca_be.dto.record.StaffExportRow(
-    d.codice, c.nome, cast(c.tipoCorso as string), p.annoCorso, p.nome, p.cognome
+    d.codice, c.nome, cast(c.tipoCorso as string), p.annoCorso, p.nome, p.cognome, p.matricola, p.mailUnipa, p.numeroTelefono
   )
     from Persona p
       join p.corsoDiStudi c

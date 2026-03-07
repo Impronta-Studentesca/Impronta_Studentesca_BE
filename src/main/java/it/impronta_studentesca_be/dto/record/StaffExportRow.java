@@ -7,5 +7,8 @@ public record StaffExportRow(
         String tipoCorso,
         Integer annoDiCorso,
         String nome,
-        String cognome
+        String cognome,
+        String matricola,
+        String mailUnipa,
+        String numeroTelefono
 ) {}

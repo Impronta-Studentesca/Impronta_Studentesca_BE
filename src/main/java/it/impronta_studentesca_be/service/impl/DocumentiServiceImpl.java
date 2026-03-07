@@ -100,11 +100,14 @@ public class DocumentiServiceImpl implements DocumentiService {
         log.info("RIGHE STAFF RECUPERATE - COUNT={}", rows != null ? rows.size() : null);
 
         String[] headers = {
+                "MATRICOLA",
+                "NOME",
+                "COGNOME",
+                "TELEFONO",
+                "EMAIL UNIVERSITARIA",
                 "DIPARTIMENTO",
                 "CORSO DI STUDI",
                 "TIPO CORSO",
-                "NOME",
-                "COGNOME",
                 "ANNO DI CORSO"
         };
 
@@ -195,19 +198,20 @@ public class DocumentiServiceImpl implements DocumentiService {
             // Data rows
             int r = 1;
             if (rows != null) {
-                for (StaffExportRow x : rows) {
+                for (StaffExportRow staffRow : rows) {
                     Row row = sheet.createRow(r++);
-
-                    row.createCell(0).setCellValue(x.dipartimentoCodice());
-                    row.createCell(1).setCellValue(x.corsoDiStudiNome());
-                    row.createCell(2).setCellValue(
-                            x.tipoCorso() != null ? TipoCorso.valueOf(x.tipoCorso()).getValue() : ""
+                    row.createCell(0).setCellValue(staffRow.matricola());
+                    row.createCell(1).setCellValue(staffRow.nome());
+                    row.createCell(2).setCellValue(staffRow.cognome());
+                    row.createCell(3).setCellValue(staffRow.numeroTelefono());
+                    row.createCell(4).setCellValue(staffRow.mailUnipa());
+                    row.createCell(5).setCellValue(staffRow.dipartimentoCodice());
+                    row.createCell(6).setCellValue(staffRow.corsoDiStudiNome());
+                    row.createCell(7).setCellValue(
+                            staffRow.tipoCorso() != null ? TipoCorso.valueOf(staffRow.tipoCorso()).getValue() : ""
                     );
-                    row.createCell(3).setCellValue(x.nome());
-                    row.createCell(4).setCellValue(x.cognome());
-
-                    Cell annoCell = row.createCell(5);
-                    if (x.annoDiCorso() != null) annoCell.setCellValue(x.annoDiCorso());
+                    Cell annoCell = row.createCell(8);
+                    if (staffRow.annoDiCorso() != null) annoCell.setCellValue(staffRow.annoDiCorso());
                     else annoCell.setBlank();
                 }
             }
