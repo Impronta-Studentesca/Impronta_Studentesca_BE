@@ -406,4 +406,29 @@ public class PersonaServiceImpl implements PersonaService {
         return personaRepository.existsByIdAndDaApprovareTrue(id);
     }
 
+
+    private String normalize(String value) {
+        if (value == null) return null;
+        String v = value.trim();
+        return v.isEmpty() ? null : v;
+    }
+
+    private String normalizeEmail(String value) {
+        if (value == null) return null;
+        String v = value.trim().toLowerCase();
+        return v.isEmpty() ? null : v;
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public boolean existsByMatricolaOrMailUnipaOrEmailOrNumeroTelefono(String matricola, String mailUnipa, String email, String numeroTelefono){
+        return personaRepository.existsByMatricolaOrMailUnipaOrEmailOrNumeroTelefono(
+                normalize(matricola),
+                normalizeEmail(mailUnipa),
+                normalizeEmail(email),
+                normalize(numeroTelefono));
+    }
+
+
+
 }

@@ -76,4 +76,7 @@ public interface PersonaService {
 
     @Transactional(readOnly = true)
     boolean checkIsDaApprovare(Long id);
+
+    @Transactional(readOnly = true)
+    boolean existsByMatricolaOrMailUnipaOrEmailOrNumeroTelefono(String matricola, String mailUnipa, String email, String numeroTelefono);
 }

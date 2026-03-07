@@ -5,6 +5,7 @@ import it.impronta_studentesca_be.constant.TipoDirettivo;
 import it.impronta_studentesca_be.dto.*;
 import it.impronta_studentesca_be.dto.record.*;
 import it.impronta_studentesca_be.entity.Persona;
+import it.impronta_studentesca_be.exception.CreateException;
 import it.impronta_studentesca_be.exception.EntityNotFoundException;
 import it.impronta_studentesca_be.exception.GetAllException;
 import it.impronta_studentesca_be.service.*;
@@ -73,6 +74,14 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
             }
 
             persona.setId(null);
+
+            if(personaService.existsByMatricolaOrMailUnipaOrEmailOrNumeroTelefono(
+                    persona.getMatricola(), persona.getMailUnipa(),
+                    persona.getEmail(), persona.getNumeroTelefono())
+            ){
+                log.error("ERRORE CREA PERSONA - PERSONA GIA PRESENTE");
+                throw new CreateException("persona", persona.getNome(), "persona già creata");
+            }
             Persona preSaved = mapper.toPersona(persona);
             preSaved.setDaApprovare(daApprovare);
             Persona saved = personaService.create(preSaved);
@@ -84,6 +93,8 @@ public class AdminImprontaServiceImpl implements AdminImprontaService {
                 emailService.sendLinkPasswordUtente(saved.getId(), saved.getEmail(), saved.getNome(), false);
             }
 
+        } catch (CreateException e) {
+            throw e;
         } catch (Exception e) {
             log.error("ERRORE CREA PERSONA - REQUEST={}", persona, e);
             throw e;

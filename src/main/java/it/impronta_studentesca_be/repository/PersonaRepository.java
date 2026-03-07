@@ -265,6 +265,22 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
 
     boolean existsByIdAndDaApprovareTrue(Long id);
 
+    @Query("""
+        select (count(p) > 0)
+        from Persona p
+        where
+            (:matricola is not null and p.matricola = :matricola)
+            or (:mailUnipa is not null and lower(p.mailUnipa) = lower(:mailUnipa))
+            or (:email is not null and lower(p.email) = lower(:email))
+            or (:numeroTelefono is not null and p.numeroTelefono = :numeroTelefono)
+    """)
+    boolean existsByMatricolaOrMailUnipaOrEmailOrNumeroTelefono(
+            @Param("matricola") String matricola,
+            @Param("mailUnipa") String mailUnipa,
+            @Param("email") String email,
+            @Param("numeroTelefono") String numeroTelefono
+    );
+
 }
 
 
