@@ -408,8 +408,9 @@ public class PublicImprontaServiceImpl implements PublicImprontaService {
                     throw new EntityNotFoundException("Persona", "ID", personaId);
                 }
 
-                log.error("PASSWORD NON PRESENTE - PERSONA_ID={}", personaId);
-                throw new IllegalStateException("PASSWORD NON CREATA");
+                personaService.setPasswordIfEmpty(personaId, hash);
+//                log.error("PASSWORD NON PRESENTE - PERSONA_ID={}", personaId);
+//                throw new IllegalStateException("PASSWORD NON CREATA");
             }
 
             log.info("FINE MODIFICA PASSWORD OK - PERSONA_ID={}", personaId);
