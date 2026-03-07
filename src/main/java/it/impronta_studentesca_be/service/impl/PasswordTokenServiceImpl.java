@@ -26,7 +26,7 @@ public class PasswordTokenServiceImpl implements PasswordTokenService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     private static final int TOKEN_BYTES = 32; // 256-bit
-    private static final int TTL_MINUTES = 30;
+    private static final int TTL_MINUTES = 9000;
 
     @Transactional
     @Override
